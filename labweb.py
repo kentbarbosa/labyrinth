@@ -16,7 +16,7 @@ def labyhome():
 @app.route("/stop")
 def stoplights():
     if lt.is_alive():
-        lt.stop_lights()
+        lt.stop()
     templateData = {
         'title':'The Labyrinth',
         'status':'Lights stopped'
