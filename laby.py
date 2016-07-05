@@ -3,11 +3,15 @@
 # todo:
 #7/3/16: strip out queue and make sure basic loop works with Process
 #Thread may be OK - need to test both with flask
+#7/4/16: set up queuemanager as a separate thread owned by the lights object
 
 from __future__ import division
-#import threading
-from multiprocessing import Process, Queue
+from threading import Thread
+import multiprocessing as mp
+import Queue
 import time
+from multiprocessing.managers import BaseManager
+
 
 import Adafruit_PCA9685
 import random
@@ -45,88 +49,90 @@ eastwest = [ (4,0), (3,0), (2,0), (1,0), (0,0),
 
 
 
-class lightThread(Process):
-    def __init__(self,q=None):
-        Process.__init__(self)
+class Lights(Thread):
+    def __init__(self):
+        Thread.__init__(self)
+        self.kill = False
         self.run_lights = False
         self.step = 64
-        self.q = q
         self.cmd = None
         self.pwm = []
         self.pwm.append(Adafruit_PCA9685.PCA9685(address=0x40))
         ##pwm.append(Adafruit_PCA9685.PCA9685(address=0x41))
         self.pwm[0].set_pwm_freq(1000)
-
-
-
-    # Helper function to make setting a servo pulse width simpler.
-    def set_servo_pulse(channel, pulse):
-        pulse_length = 1000000    # 1,000,000 us per second
-        pulse_length //= 60       # 60 Hz
-        print('{0}us per period'.format(pulse_length))
-        pulse_length //= 4096     # 12 bits of resolution
-        print('{0}us per bit'.format(pulse_length))
-        pulse *= 1000
-        pulse //= pulse_length
-        pwm[0].set_pwm(channel, 0, pulse)
-
+        
+        class QueueManager(BaseManager):pass
+        QueueManager.register('get_queue')
+        self.qmgr = QueueManager(address=('127.0.0.1',50001),authkey='labyrinth')
+        self.qmgr.connect()
+        self.q = self.qmgr.get_queue()
 
     def checkq(self):
         if self.q and not self.q.empty():
             curq = self.q.get()
-            if 'command' in curq:
-                self.cmd = curq['command']
+            if 'cmd' in curq:
+                self.cmd = curq['cmd']
             print "received: ", curq
+            if self.cmd == 'step':
+                if 'value' in curq:
+                    lt.step = curq['value']
+            elif self.cmd == 'stop':
+                self.run_lights = False
+            elif self.cmd == 'start':
+                self.run_lights = True
+            elif self.cmd == 'kill':
+                self.kill = True
             return curq
         else: 
             return None
-
 
     def run(self):
         self.run_lights =  True
         print('Running LEDs, press Ctrl-C to quit...')
         x = 0
         curside = 0
-        while self.cmd != 'stop':
+        while not self.kill:
             if self.checkq():
                 next
+            if self.run_lights:
 
-            numsides = 4
-            w = 0.001
-            for i in range(0,4095,self.step):
-                pwm[0].set_pwm(0,0,4095-i)
-##                pwm[1].set_pwm(0,0,4095-i)
-                pwm[0].set_pwm(7,0,i)
+                numsides = 4
+                w = 0.01
+                for i in range(0,4095,self.step):
+                    self.pwm[0].set_pwm(0,0,4095-i)
+    ##                pwm[1].set_pwm(0,0,4095-i)
+                    self.pwm[0].set_pwm(7,0,i)
 
-##                for side in range(4,8):
-##                    pwm[1].set_pwm(side,0,i)
-                #time.sleep(w)
-            for i in range(4095,0,-self.step):
-                pwm[0].set_pwm(0,0,4095-i)
-##                pwm[1].set_pwm(0,0,4095-i)
-                pwm[0].set_pwm(7,0,i)
-##                for side in range(4,8):
-##                    pwm[1].set_pwm(side,0,i)
+    ##                for side in range(4,8):
+    ##                    self.pwm[1].set_pwm(side,0,i)
+                    #time.sleep(w)
+                for i in range(4095,0,-self.step):
+                    self.pwm[0].set_pwm(0,0,4095-i)
+    ##                self.pwm[1].set_pwm(0,0,4095-i)
+                    self.pwm[0].set_pwm(7,0,i)
+    ##                for side in range(4,8):
+    ##                    self.pwm[1].set_pwm(side,0,i)
+                    #time.sleep(w)
 
     def stop(self):
-        self.q.put({'command':'stop'})
         self.run_lights = False
 
 if __name__ == '__main__':
 
-    cmdq = Queue()
-    print "queue set up"
 
-    lt = lightThread(q=cmdq)
+
+    lt = Lights()
     lt.start()
 
     for step in [8,16,32,64,128,256]:
         print "step is ", step
-        cmdq.put({"step":step})
+        lt.q.put({"cmd":"step","value":step})
         #lt.step = step
-        time.sleep(10)
+        time.sleep(4)
 
-    lt.stop()
+    #lt.stop()
+    lt.q.put({'cmd':'stop'})
+
     
 
 

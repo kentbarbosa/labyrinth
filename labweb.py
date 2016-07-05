@@ -1,19 +1,21 @@
 from multiprocessing import Process, Queue
+from multiprocessing.managers import BaseManager
 from flask import Flask, render_template
 app = Flask(__name__)
 
 
-cmdq = Queue()
+class QueueManager(BaseManager):pass
+QueueManager.register('get_queue')
+qmgr = QueueManager(address=('127.0.0.1',50001),authkey='labyrinth')
+qmgr.connect()
+cmdq = qmgr.get_queue()
 
-import laby
-lt = laby.lightThread(q=cmdq)
-lt.start()
 
 def get_status():
     status = {
-        'alive': 'True' if lt.is_alive() else 'False',
-        'step':lt.step,
-        'status':'--status goes here--',
+        'alive': 'need to implementunknown',
+        'step':'need to implement',
+        'status':'need to implement',
 
         }
     return status
@@ -27,9 +29,7 @@ def labyhome():
 
 @app.route("/stop")
 def stoplights():
-    #if lt.is_alive():
-##    lt.stop()
-    cmdq.put({'command':'stop'})
+    cmdq.put({'cmd':'stop'})
     templateData = {
         'title':'The Labyrinth',
         }
@@ -37,9 +37,7 @@ def stoplights():
 
 @app.route("/start")
 def startlights():
-    if lt and not lt.is_alive():
-        lt.run()
-    cmdq.put({'command':'start')}
+    cmdq.put({'cmd':'start'})
 
     templateData = {
         'title':'The Labyrinth',
