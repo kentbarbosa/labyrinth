@@ -19,13 +19,13 @@ from multiprocessing.managers import BaseManager
 import Adafruit_PCA9685
 import random
 
-# light[ ring, wall ] contains (pwm, channel) for each light
+# lightpc[ ring, wall ] contains (pwm, channel) for each light
 # note that (ring, wall) is really the polar coordinate
 numrings = 5
 numwalls = 4
 #walls are numbered 0..4 from E-N-W-S
 
-light = [
+lightpc = [
     [ (0,0), (0,1), (0,2), (0,3) ],
     [ (0,4), (0,5), (0,6), (0,7) ],
     [ (0,8), (0,9), (0,10), (0,11) ],
@@ -39,17 +39,6 @@ northsouth = [ (4,1), (3,1), (2,1), (1,1), (0,1),
 eastwest = [ (4,0), (3,0), (2,0), (1,0), (0,0),
              (0,2), (1,2), (2,2), (3,2), (4,2)
              ]
-
-
-# Uncomment to enable debug output.
-#import logging
-#logging.basicConfig(level=logging.DEBUG)
-
-
-
-# Alternatively specify a different address and/or bus:
-#pwm = Adafruit_PCA9685.PCA9685(address=0x41, busnum=2)
-
 
 
 class Lights(Thread):
