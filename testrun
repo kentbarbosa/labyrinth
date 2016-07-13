@@ -3,4 +3,4 @@
 export FLASK_APP=labweb.py
 export FLASK_DEBUG=1
 #flask run --no-reload --with-threads --host=0.0.0.0 --port=80
-flask run --host=0.0.0.0 --port=80
+flask run --host=0.0.0.0 --port=3333

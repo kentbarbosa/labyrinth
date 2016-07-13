@@ -4,6 +4,9 @@
 #7/3/16: strip out queue and make sure basic loop works with Process
 #Thread may be OK - need to test both with flask
 #7/4/16: set up queuemanager as a separate thread owned by the lights object
+#7/5/16: create lightmgr and lightrunner classes to separate command management
+#   and light hardware updating (runner)
+
 
 from __future__ import division
 from threading import Thread
@@ -117,6 +120,10 @@ class Lights(Thread):
     def stop(self):
         self.run_lights = False
 
+    def kill(self):
+        self.kill = True
+    
+
 if __name__ == '__main__':
 
 
@@ -128,7 +135,7 @@ if __name__ == '__main__':
         print "step is ", step
         lt.q.put({"cmd":"step","value":step})
         #lt.step = step
-        time.sleep(4)
+        time.sleep(30)
 
     #lt.stop()
     lt.q.put({'cmd':'stop'})
