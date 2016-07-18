@@ -50,8 +50,9 @@ class Lights(Thread):
         self.cmd = None
         self.pwm = []
         self.pwm.append(Adafruit_PCA9685.PCA9685(address=0x40))
-        ##pwm.append(Adafruit_PCA9685.PCA9685(address=0x41))
-        self.pwm[0].set_pwm_freq(1000)
+        self.pwm.append(Adafruit_PCA9685.PCA9685(address=0x41))
+        for p in self.pwm:
+            p.set_pwm_freq(60)
         
         class QueueManager(BaseManager):pass
         QueueManager.register('get_queue')
@@ -91,17 +92,28 @@ class Lights(Thread):
                 numsides = 4
                 w = 0.01
                 for i in range(0,4095,self.step):
-                    self.pwm[0].set_pwm(0,0,4095-i)
+                    for p in self.pwm:
+                        p.set_all_pwm(0,4095-i)
+##                        for c in range(16):
+##                            p.set_pwm(c,0,4095-i)
+                    
+                    #self.pwm[0].set_pwm(0,0,4095-i)
     ##                pwm[1].set_pwm(0,0,4095-i)
-                    self.pwm[0].set_pwm(7,0,i)
+                    #self.pwm[0].set_pwm(7,0,i)
 
     ##                for side in range(4,8):
     ##                    self.pwm[1].set_pwm(side,0,i)
                     #time.sleep(w)
                 for i in range(4095,0,-self.step):
-                    self.pwm[0].set_pwm(0,0,4095-i)
+                    for p in self.pwm:
+                        p.set_all_pwm(0,4095-i)
+                        
+##                        for c in range(16):
+##                            p.set_pwm(c,0,4095-i)
+
+                    #self.pwm[0].set_pwm(0,0,4095-i)
     ##                self.pwm[1].set_pwm(0,0,4095-i)
-                    self.pwm[0].set_pwm(7,0,i)
+                    #self.pwm[0].set_pwm(7,0,i)
     ##                for side in range(4,8):
     ##                    self.pwm[1].set_pwm(side,0,i)
                     #time.sleep(w)
@@ -121,13 +133,18 @@ if __name__ == '__main__':
     lt.start()
 
     for step in [8,16,32,64,128,256]:
+#    for step in [64,128,256]:
         print "step is ", step
         lt.q.put({"cmd":"step","value":step})
         #lt.step = step
         time.sleep(30)
 
     #lt.stop()
-    lt.q.put({'cmd':'stop'})
+    #lt.q.put({'cmd':'stop'})
+    print "ctrl-c to exit"
+    while True:
+        time.sleep(3)
+        pass
 
     
 
