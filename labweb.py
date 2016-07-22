@@ -22,6 +22,7 @@ def get_status():
 
 
 @app.route("/")
+@app.route("/home")
 def labyhome():
     templateData = get_status()
     templateData['title'] = 'The Labyrinth'
@@ -30,6 +31,14 @@ def labyhome():
 @app.route("/stop")
 def stoplights():
     cmdq.put({'cmd':'stop'})
+    templateData = {
+        'title':'The Labyrinth',
+        }
+    return( render_template('home.html',**templateData))
+
+@app.route("/off")
+def offlights():
+    cmdq.put({'cmd':'off'})
     templateData = {
         'title':'The Labyrinth',
         }

@@ -9,6 +9,7 @@
 
 
 from __future__ import division
+from __future__ import print_function
 from threading import Thread
 import multiprocessing as mp
 import Queue
@@ -39,6 +40,36 @@ northsouth = [ (4,1), (3,1), (2,1), (1,1), (0,1),
 eastwest = [ (4,0), (3,0), (2,0), (1,0), (0,0),
              (0,2), (1,2), (2,2), (3,2), (4,2)
              ]
+class Walls():
+    def __init__(self):
+        self.pwm=[]
+        self.channel=[]
+        self.x=[]
+        self.y=[]
+        self.rho=[]
+        self.theta=[]
+        self.intensity=[]
+        num_walls = 0
+
+    def add_wall(self,pwm,channel,x,y,rho,theta,intensity=0):
+        self.pwm.append(pwm)
+        self.channel.append(channel)
+        self.x.append(x)
+        self.y.append(y)
+        self.rho.append(rho)
+        self.theta.append(theta)
+        self.intensity.append(intensity)
+        self.num_walls = len(self.pwm)
+
+    def get_wall(self,i):
+        return { 'pwm': self.pwm[i],
+                 'channel': self.channel[i],
+                 'x':self.x[i],
+                 'y': self.y[i],
+                 'rho': self.rho[i],
+                 'theta':self.theta[i],
+                 'intensity':self.intensity[i],
+                 }
 
 
 class Lights(Thread):
@@ -47,12 +78,39 @@ class Lights(Thread):
         self.kill = False
         self.run_lights = False
         self.step = 64
+        self.minbright = 0
+        self.maxbright = 4095
         self.cmd = None
         self.pwm = []
         self.pwm.append(Adafruit_PCA9685.PCA9685(address=0x40))
         self.pwm.append(Adafruit_PCA9685.PCA9685(address=0x41))
         for p in self.pwm:
             p.set_pwm_freq(60)
+
+        self.walls = Walls()
+        self.walls.add_wall( self.pwm[1], 3, 6, 5, 1, 0, 0 )
+        self.walls.add_wall( self.pwm[1], 2, 5, 6, 1, 1, 0 )
+        self.walls.add_wall( self.pwm[1], 1, 5, 6, 1, 1, 0 )
+        self.walls.add_wall( self.pwm[1], 0, 5, 6, 1, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 15, 5, 6, 2, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 14, 5, 6, 2, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 13, 5, 6, 2, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 12, 5, 6, 2, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 11, 5, 6, 3, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 10, 5, 6, 3, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 9, 5, 6, 3, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 8, 5, 6, 3, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 7, 5, 6, 2, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 6, 5, 6, 2, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 5, 5, 6, 2, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 4, 5, 6, 2, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 3, 5, 6, 1, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 2, 5, 6, 1, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 1, 5, 6, 1, 1, 0 )
+        self.walls.add_wall( self.pwm[0], 0, 5, 6, 1, 1, 0 )
+
+
+            
         
         class QueueManager(BaseManager):pass
         QueueManager.register('get_queue')
@@ -65,58 +123,72 @@ class Lights(Thread):
             curq = self.q.get()
             if 'cmd' in curq:
                 self.cmd = curq['cmd']
-            print "received: ", curq
+            print ("received: ", curq)
             if self.cmd == 'step':
                 if 'value' in curq:
                     lt.step = curq['value']
+            elif self.cmd == 'min':
+                if 'value' in curq:
+                    lt.minbright = int(curq['value']*4095)
+                    if lt.minbright<0:
+                        lt.minbright = 0
+                    if lt.minbright > 4095:
+                        lt.minbright = 4095
+            elif self.cmd == 'max':
+                if 'value' in curq:
+                    lt.maxbright = int(curq['value']*4095)
+                    if lt.maxbright<0:
+                        lt.maxbright = 0
+                    if lt.maxbright > 4095:
+                        lt.maxbright = 4095
+
             elif self.cmd == 'stop':
                 self.run_lights = False
             elif self.cmd == 'start':
                 self.run_lights = True
             elif self.cmd == 'kill':
                 self.kill = True
+            elif self.cmd == 'off':
+                for p in self.pwm:
+                    p.set_all_pwm(0,0)
+                self.run_lights = False
             return curq
         else: 
             return None
+
+    def update_walls(self):
+        for i in range(self.walls.num_walls):
+            self.walls.pwm[i].set_pwm(self.walls.channel[i],
+                                      0,self.walls.intensity[i])
+                                      
 
     def run(self):
         self.run_lights =  True
         print('Running LEDs, press Ctrl-C to quit...')
         x = 0
         curside = 0
+        cycletime = 5.0 #seconds
+        starttime = time.time()
+        numwalls = len(self.walls.pwm)
         while not self.kill:
+            curtime = time.time()
+            curstep = (curtime-starttime)/cycletime
+            if curstep > 1.0 :
+                starttime = curtime
+                next
+            
             if self.checkq():
                 next
+                
             if self.run_lights:
 
-                numsides = 4
-                w = 0.01
-                for i in range(0,4095,self.step):
-                    for p in self.pwm:
-                        p.set_all_pwm(0,4095-i)
-##                        for c in range(16):
-##                            p.set_pwm(c,0,4095-i)
-                    
-                    #self.pwm[0].set_pwm(0,0,4095-i)
-    ##                pwm[1].set_pwm(0,0,4095-i)
-                    #self.pwm[0].set_pwm(7,0,i)
+                for i in range(numwalls):
+                    self.walls.intensity[i] = random.randint(self.minbright,self.maxbright)
 
-    ##                for side in range(4,8):
-    ##                    self.pwm[1].set_pwm(side,0,i)
-                    #time.sleep(w)
-                for i in range(4095,0,-self.step):
-                    for p in self.pwm:
-                        p.set_all_pwm(0,4095-i)
-                        
-##                        for c in range(16):
-##                            p.set_pwm(c,0,4095-i)
-
-                    #self.pwm[0].set_pwm(0,0,4095-i)
-    ##                self.pwm[1].set_pwm(0,0,4095-i)
-                    #self.pwm[0].set_pwm(7,0,i)
-    ##                for side in range(4,8):
-    ##                    self.pwm[1].set_pwm(side,0,i)
-                    #time.sleep(w)
+                self.update_walls()
+                
+                w = 1.0
+                time.sleep(w)
 
     def stop(self):
         self.run_lights = False
@@ -134,14 +206,14 @@ if __name__ == '__main__':
 
     for step in [8,16,32,64,128,256]:
 #    for step in [64,128,256]:
-        print "step is ", step
+        print("step is ", step)
         lt.q.put({"cmd":"step","value":step})
         #lt.step = step
         time.sleep(30)
 
     #lt.stop()
     #lt.q.put({'cmd':'stop'})
-    print "ctrl-c to exit"
+    print("ctrl-c to exit")
     while True:
         time.sleep(3)
         pass
