@@ -3,6 +3,13 @@ from multiprocessing.managers import BaseManager
 from flask import Flask, render_template
 app = Flask(__name__)
 
+app.config.from_object('config')
+
+#from .import views
+
+from forms import LightParamsForm
+
+
 
 class QueueManager(BaseManager):pass
 QueueManager.register('get_queue')
@@ -30,6 +37,13 @@ def home_page():
 @app.route("/home")
 def labyhome():
     return( home_page())
+
+@app.route("/params", methods=['GET','POST'])
+def lightparams():
+    form = LightParamsForm()
+    return render_template('lightparams.html',
+                           title='Light Parameters',
+                           form=form)
 
 @app.route("/stop")
 def stoplights():

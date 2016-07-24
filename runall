@@ -1,0 +1,10 @@
+#!/bin/sh -e
+#
+# runs all the components of lighting control
+# pathname should be added to /etc/rc.local to autorun on pi
+#
+
+python /home/pi/dev/labyrinth/cmdqmanager.py &
+/home/pi/dev/labyrinth/testrun &
+python /home/pi/dev/labyrinth/laby.py &
+
