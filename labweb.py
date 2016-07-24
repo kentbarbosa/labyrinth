@@ -20,50 +20,49 @@ def get_status():
         }
     return status
 
+def home_page():
+    templateData = get_status()
+    templateData['title'] = 'Lighting Control'
+    return( render_template('home.html',**templateData))
+
 
 @app.route("/")
 @app.route("/home")
 def labyhome():
-    templateData = get_status()
-    templateData['title'] = 'The Labyrinth'
-    return( render_template('home.html',**templateData))
+    return( home_page())
 
 @app.route("/stop")
 def stoplights():
     cmdq.put({'cmd':'stop'})
-    templateData = {
-        'title':'The Labyrinth',
-        }
-    return( render_template('home.html',**templateData))
+    return( home_page())
+@app.route("/kill")
+def killlights():
+    cmdq.put({'cmd':'kill'})
+    return( home_page())
 
 @app.route("/off")
 def offlights():
     cmdq.put({'cmd':'off'})
-    templateData = {
-        'title':'The Labyrinth',
-        }
-    return( render_template('home.html',**templateData))
+    return( home_page())
 
 @app.route("/start")
 def startlights():
     cmdq.put({'cmd':'start'})
-
-    templateData = {
-        'title':'The Labyrinth',
-        'status':'Lights started'
-        }
-    return( render_template('home.html',**templateData))
+    return( home_page())
 
 @app.route("/status")
 def status():
-    #show light status
-    templateData = get_status()
-    print "Status update"
-    print templateData
-    return( render_template('status.html',**get_status()))
+    return( home_page())
 
+@app.route("/faster")
+def faster():
+    cmdq.put({'cmd':'faster'})
+    return(home_page())
 
-
+@app.route("/slower")
+def slower():
+    cmdq.put({'cmd':'slower'})
+    return(home_page())
 
 
 if __name__ == "__main__":
