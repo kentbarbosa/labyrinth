@@ -63,11 +63,11 @@ class Lights(Thread):
         self.run_lights = False
         self.step = 64
         self.cycle_time = 5.0 #seconds
-        self.mincycle_time = 1.0
-        self.maxcycle_time = 60.0
+        self.mincycle_time = 0.5
+        self.maxcycle_time = 600.0
         self.step_time = 0.1
         self.minstep_time = 0.01
-        self.maxstep_time = 60.0
+        self.maxstep_time = 600.0
 
         self.minbright = 0
         self.maxbright = 4095
@@ -186,21 +186,39 @@ class Lights(Thread):
     def run(self):
         self.run_lights =  True
         print('Running LEDs, press Ctrl-C to quit...')
-        x = 0
-        curside = 0
-        starttime = time.time()
+        #x = 0
+        #curside = 0
+        start_time = time.time()
+        start_step_time = start_time
+
         numstrands = len(self.strands.pwm)
         while not self.kill:
             curtime = time.time()
-            cursteptime = curtime- starttime
-            if cursteptime < self.step_time:
-                next
-            curstep = cursteptime/ self.cycle_time
-            if curstep > 1.0 :
-                starttime = curtime
-                next
+            cur_cycle_time = curtime- start_time # secs into this cycle
+            if cur_cycle_time > self.cycle_time:
+                start_time = time.time()
+                start_step_time = start_time
+                print('new cycle',cur_cycle_time)
+                continue
+
+            cur_step_time = curtime - start_step_time
+            if cur_step_time < self.step_time:
+                continue
+##            print('new step',cur_step_time)
+##            print('self.step_time: ',self.step_time)
+            start_step_time = curtime
+
+            #step is [0..1] and is time independent
+            curstep = cur_cycle_time/ self.cycle_time
+##            if cur_step_time >= self.step_time:
+##                continue
+##            if curstep > 1.0 :
+##                starttime = curtime
+##                continue
             if self.checkq():
-                next
+                #something may have changed, recalc anything needed here
+                
+                continue
             
                 
             if self.run_lights:
@@ -209,9 +227,9 @@ class Lights(Thread):
                     self.strands.intensity[i] = random.randint(self.minbright,self.maxbright)
 
                 self.update_strands()
-                
-##                w = 1.0
-##                time.sleep(self.steptime / )
+
+            else:
+                time.sleep(self.step_time / 3.0 )
 
     def stop(self):
         self.run_lights = False
@@ -227,21 +245,23 @@ if __name__ == '__main__':
     lt = Lights()
     lt.start()
 
-    for step in [8,16,32,64,128,256]:
-#    for step in [64,128,256]:
-        if lt.kill:
-            break
-
-        print("step is ", step)
-        lt.q.put({"cmd":"step","value":step})
-        #lt.step = step
-        for t in range(30):
-            if lt.kill:
-                break
-            time.sleep(1)
+##    for step in [8,16,32,64,128,256]:
+###    for step in [64,128,256]:
+##        if lt.kill:
+##            break
+##
+##        print("step is ", step)
+##        lt.q.put({"cmd":"step","value":step})
+##        #lt.step = step
+##        for t in range(30):
+##            if lt.kill:
+##                break
+##            time.sleep(1)
 
     #lt.stop()
     #lt.q.put({'cmd':'stop'})
+
+    lt.q.put({'cmd':'max','value':0.001})
     print("ctrl-c to exit")
     while not lt.kill:
         time.sleep(3)

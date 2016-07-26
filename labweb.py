@@ -1,6 +1,6 @@
 from multiprocessing import Process, Queue
 from multiprocessing.managers import BaseManager
-from flask import Flask, render_template
+from flask import Flask, render_template, redirect
 app = Flask(__name__)
 
 app.config.from_object('config')
@@ -32,6 +32,8 @@ def home_page():
     templateData['title'] = 'Lighting Control'
     return( render_template('home.html',**templateData))
 
+def redirect_home():
+    return redirect("/home")
 
 @app.route("/")
 @app.route("/home")
@@ -48,47 +50,53 @@ def lightparams():
 @app.route("/stop")
 def stoplights():
     cmdq.put({'cmd':'stop'})
-    return( home_page())
+    return( redirect_home())
 @app.route("/kill")
 def killlights():
     cmdq.put({'cmd':'kill'})
-    return( home_page())
+    return( redirect_home())
 
 @app.route("/off")
 def offlights():
     cmdq.put({'cmd':'off'})
-    return( home_page())
+    return( redirect_home())
 
 @app.route("/start")
 def startlights():
     cmdq.put({'cmd':'start'})
-    return( home_page())
+    return( redirect_home())
 
 @app.route("/status")
 def status():
-    return( home_page())
+    return( redirect_home())
 
 @app.route("/faster")
 def faster():
     cmdq.put({'cmd':'faster'})
-    return(home_page())
+    return(redirect_home())
 
 @app.route("/slower")
 def slower():
     cmdq.put({'cmd':'slower'})
-    return(home_page())
+    return(redirect_home())
 
 @app.route("/cycletime/<cycle_time>")
 def set_cycle_time(cycle_time):
     cmdq.put({'cmd':'cycletime',
               'value':cycle_time})
-    return(home_page())
+    return(redirect_home())
+
+@app.route("/steptime/<step_time>")
+def set_step_time(step_time):
+    cmdq.put({'cmd':'steptime',
+              'value':step_time})
+    return(redirect_home())
 
 @app.route("/max/<maxvalue>")
 def set_maxbright(maxvalue):
     cmdq.put({'cmd':'max',
               'value':maxvalue})
-    return(home_page())
+    return(redirect_home())
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80, debug=True)

@@ -14,9 +14,15 @@
       </h2>
       <br>
       <h2> Cycle time in seconds </h2>
-      <a href=/cycletime/2 > 2 </a> .
-      <a href=/cycletime/5 > 5 </a> .
-      <a href=/cycletime/10 > 10 </a>.
+      {% for b in [0.5,1.0,2.0,4.0,8.0,16.0,32.0,64.0] %}
+          <a href=/cycletime/{{ b }}>{{ b }}</a>
+      {% endfor %}
+
+      <br>
+      <h2> Step time in seconds </h2>
+        {% for b in [0.01,0.03,0.05,0.10,0.20,0.30,0.40,0.50,0.75,1.0,2.0,4,8,16] %}
+          <a href=/steptime/{{ b }}>{{ b }}</a>
+      {% endfor %}
 
       <br>
       <h2>Brightness</h2>
