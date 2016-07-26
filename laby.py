@@ -63,7 +63,11 @@ class Lights(Thread):
         self.run_lights = False
         self.step = 64
         self.cycle_time = 5.0 #seconds
+        self.mincycle_time = 1.0
+        self.maxcycle_time = 60.0
         self.step_time = 0.1
+        self.minstep_time = 0.01
+        self.maxstep_time = 60.0
 
         self.minbright = 0
         self.maxbright = 4095
@@ -105,6 +109,13 @@ class Lights(Thread):
         self.qmgr.connect()
         self.q = self.qmgr.get_queue()
 
+    def update_status(self):
+        print('cycle_time: ',self.cycle_time)
+        print('step_time: ',self.step_time)
+        print('maxbright: ',self.maxbright)
+        print('minbright: ',self.minbright)
+        
+        
     def checkq(self):
         if self.q and not self.q.empty():
             curq = self.q.get()
@@ -113,21 +124,37 @@ class Lights(Thread):
             print ("received: ", curq)
             if self.cmd == 'step':
                 if 'value' in curq:
-                    lt.step = curq['value']
+                    self.step = curq['value']
             elif self.cmd == 'min':
                 if 'value' in curq:
-                    lt.minbright = int(curq['value']*4095)
-                    if lt.minbright<0:
-                        lt.minbright = 0
-                    if lt.minbright > 4095:
-                        lt.minbright = 4095
+                    self.minbright = int(float(curq['value'])*4095)
+                    if self.minbright<0:
+                        self.minbright = 0
+                    if self.minbright > 4095:
+                        self.minbright = 4095
             elif self.cmd == 'max':
                 if 'value' in curq:
-                    lt.maxbright = int(curq['value']*4095)
-                    if lt.maxbright<0:
-                        lt.maxbright = 0
-                    if lt.maxbright > 4095:
-                        lt.maxbright = 4095
+                    self.maxbright = int(float(curq['value'])*4095)
+                    if self.maxbright<0:
+                        self.maxbright = 0
+                    if self.maxbright > 4095:
+                        self.maxbright = 4095
+
+            elif self.cmd == 'cycletime':
+                if 'value' in curq:
+                    self.cycle_time = float(curq['value'])
+                    if self.cycle_time<self.mincycle_time:
+                        self.cycle_time = self.mincycle_time
+                    if self.cycle_time > self.maxcycle_time:
+                        self.cycle_time = self.maxcycle_time
+
+            elif self.cmd == 'steptime':
+                if 'value' in curq:
+                    self.step_time = float(curq['value'])
+                    if self.step_time<self.minstep_time:
+                        self.step_time = self.minstep_time
+                    if self.step_time > self.maxstep_time:
+                        self.step_time = self.maxstep_time
 
             elif self.cmd == 'faster':
                 self.cycle_time -= self.cycle_time * 0.50
@@ -145,6 +172,7 @@ class Lights(Thread):
                 for p in self.pwm:
                     p.set_all_pwm(0,0)
                 self.run_lights = False
+            self.update_status()
             return curq
         else: 
             return None

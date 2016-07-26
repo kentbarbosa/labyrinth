@@ -4,14 +4,29 @@
    </head>
 
    <body>
-      <a href="home"><h1>Light control home</h1></a>
-      <a href=off> Off lights</a><br>
-      <a href=stop> Stop lights</a><br>
-      <a href=start> Start lights</a><br>
-      <a href=faster> Faster </a><br>
-      <a href=slower> Slower </a>
+      <a href="/home"><h1>Light control home</h1></a>
+      <h2>
+      <a href=/off> Off lights</a><br>
+      <a href=/stop> Stop lights</a><br>
+      <a href=/start> Start lights</a><br>
+      <a href=/faster> Faster </a><br>
+      <a href=/slower> Slower </a>
+      </h2>
       <br>
+      <h2> Cycle time in seconds </h2>
+      <a href=/cycletime/2 > 2 </a> .
+      <a href=/cycletime/5 > 5 </a> .
+      <a href=/cycletime/10 > 10 </a>.
+
       <br>
-      <a href=kill> Kill program </a>
+      <h2>Brightness</h2>
+      <a href=/off>Off</a>
+      {% for b in [0.001,0.01,0.03,0.05,0.10,0.20,0.30,0.40,0.50,0.75,1.0] %}
+          <a href=/max/{{ b }}>{{ b }}</a>
+      {% endfor %}
+      <a href=/max/1.0 > Full brightness </a>
+      <br><br><br>
+      <a href=/kill> Kill program </a>
    </body>
 </html>
+

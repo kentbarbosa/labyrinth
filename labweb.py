@@ -78,6 +78,17 @@ def slower():
     cmdq.put({'cmd':'slower'})
     return(home_page())
 
+@app.route("/cycletime/<cycle_time>")
+def set_cycle_time(cycle_time):
+    cmdq.put({'cmd':'cycletime',
+              'value':cycle_time})
+    return(home_page())
+
+@app.route("/max/<maxvalue>")
+def set_maxbright(maxvalue):
+    cmdq.put({'cmd':'max',
+              'value':maxvalue})
+    return(home_page())
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80, debug=True)
