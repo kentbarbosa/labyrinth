@@ -24,36 +24,36 @@ import Adafruit_PCA9685
 import random
 
 
-class Strands():
-    def __init__(self):
-        self.pwm=[]
-        self.channel=[]
-        self.x=[]
-        self.y=[]
-        self.rho=[]
-        self.theta=[]
-        self.intensity=[]
-        num_strands = 0
-
-    def add_strand(self,pwm,channel,x,y,rho,theta,intensity=0):
-        self.pwm.append(pwm)
-        self.channel.append(channel)
-        self.x.append(x)
-        self.y.append(y)
-        self.rho.append(rho)
-        self.theta.append(theta)
-        self.intensity.append(intensity)
-        self.num_strands = len(self.pwm)
-
-    def get_strand(self,i):
-        return { 'pwm': self.pwm[i],
-                 'channel': self.channel[i],
-                 'x':self.x[i],
-                 'y': self.y[i],
-                 'rho': self.rho[i],
-                 'theta':self.theta[i],
-                 'intensity':self.intensity[i],
-                 }
+##class Strands():
+##    def __init__(self):
+##        self.pwm=[]
+##        self.channel=[]
+##        self.x=[]
+##        self.y=[]
+##        self.rho=[]
+##        self.theta=[]
+##        self.intensity=[]
+##        num_strands = 0
+##
+##    def add_strand(self,pwm,channel,x,y,rho,theta,intensity=0):
+##        self.pwm.append(pwm)
+##        self.channel.append(channel)
+##        self.x.append(x)
+##        self.y.append(y)
+##        self.rho.append(rho)
+##        self.theta.append(theta)
+##        self.intensity.append(intensity)
+##        self.num_strands = len(self.pwm)
+##
+##    def get_strand(self,i):
+##        return { 'pwm': self.pwm[i],
+##                 'channel': self.channel[i],
+##                 'x':self.x[i],
+##                 'y': self.y[i],
+##                 'rho': self.rho[i],
+##                 'theta':self.theta[i],
+##                 'intensity':self.intensity[i],
+##                 }
 
 
 class Lights(Thread):
@@ -78,30 +78,40 @@ class Lights(Thread):
         for p in self.pwm:
             p.set_pwm_freq(60)
 
-        self.strands = Strands()
-        self.strands.add_strand( self.pwm[1], 3, 6, 5, 1, 0, 0 )
-        self.strands.add_strand( self.pwm[1], 2, 5, 6, 1, 1, 0 )
-        self.strands.add_strand( self.pwm[1], 1, 5, 6, 1, 1, 0 )
-        self.strands.add_strand( self.pwm[1], 0, 5, 6, 1, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 15, 5, 6, 2, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 14, 5, 6, 2, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 13, 5, 6, 2, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 12, 5, 6, 2, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 11, 5, 6, 3, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 10, 5, 6, 3, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 9, 5, 6, 3, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 8, 5, 6, 3, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 7, 5, 6, 2, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 6, 5, 6, 2, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 5, 5, 6, 2, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 4, 5, 6, 2, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 3, 5, 6, 1, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 2, 5, 6, 1, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 1, 5, 6, 1, 1, 0 )
-        self.strands.add_strand( self.pwm[0], 0, 5, 6, 1, 1, 0 )
+        
+
+        def add_strand(pwm,channel,x,y,rho,theta,intensity=0):
+            self.strands.append( {'pwm':pwm,
+                                  'channel':channel,
+                                  'x':x,
+                                  'y':y,
+                                  'rho':rho,
+                                  'theta':theta,
+                                  'intensity':intensity,
+                                  })
+        self.strands = []
+        add_strand( self.pwm[1], 3, 6, 5, 1, 0, 0 )
+        add_strand( self.pwm[1], 2, 5, 6, 1, 1, 0 )
+        add_strand( self.pwm[1], 1, 5, 6, 1, 1, 0 )
+        add_strand( self.pwm[1], 0, 5, 6, 1, 1, 0 )
+        add_strand( self.pwm[0], 15, 5, 6, 2, 1, 0 )
+        add_strand( self.pwm[0], 14, 5, 6, 2, 1, 0 )
+        add_strand( self.pwm[0], 13, 5, 6, 2, 1, 0 )
+        add_strand( self.pwm[0], 12, 5, 6, 2, 1, 0 )
+        add_strand( self.pwm[0], 11, 5, 6, 3, 1, 0 )
+        add_strand( self.pwm[0], 10, 5, 6, 3, 1, 0 )
+        add_strand( self.pwm[0], 9, 5, 6, 3, 1, 0 )
+        add_strand( self.pwm[0], 8, 5, 6, 3, 1, 0 )
+        add_strand( self.pwm[0], 7, 5, 6, 2, 1, 0 )
+        add_strand( self.pwm[0], 6, 5, 6, 2, 1, 0 )
+        add_strand( self.pwm[0], 5, 5, 6, 2, 1, 0 )
+        add_strand( self.pwm[0], 4, 5, 6, 2, 1, 0 )
+        add_strand( self.pwm[0], 3, 5, 6, 1, 1, 0 )
+        add_strand( self.pwm[0], 2, 5, 6, 1, 1, 0 )
+        add_strand( self.pwm[0], 1, 5, 6, 1, 1, 0 )
+        add_strand( self.pwm[0], 0, 5, 6, 1, 1, 0 )
 
 
-            
         
         class QueueManager(BaseManager):pass
         QueueManager.register('get_queue')
@@ -178,10 +188,8 @@ class Lights(Thread):
             return None
 
     def update_strands(self):
-        for i in range(self.strands.num_strands):
-            self.strands.pwm[i].set_pwm(self.strands.channel[i],
-                                      0,self.strands.intensity[i])
-                                      
+        for strand in self.strands:
+            strand['pwm'].set_pwm(strand['channel'],0,strand['intensity'])                                      
 
     def run(self):
         self.run_lights =  True
@@ -191,7 +199,6 @@ class Lights(Thread):
         start_time = time.time()
         start_step_time = start_time
 
-        numstrands = len(self.strands.pwm)
         while not self.kill:
             curtime = time.time()
             cur_cycle_time = curtime- start_time # secs into this cycle
@@ -223,8 +230,8 @@ class Lights(Thread):
                 
             if self.run_lights:
 
-                for i in range(numstrands):
-                    self.strands.intensity[i] = random.randint(self.minbright,self.maxbright)
+                for strand in self.strands:
+                    strand['intensity'] = random.randint(self.minbright,self.maxbright)
 
                 self.update_strands()
 
