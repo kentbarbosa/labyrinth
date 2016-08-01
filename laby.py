@@ -76,7 +76,7 @@ class Lights(Thread):
         self.pwm.append(Adafruit_PCA9685.PCA9685(address=0x40))
         self.pwm.append(Adafruit_PCA9685.PCA9685(address=0x41))
         for p in self.pwm:
-            p.set_pwm_freq(60)
+            p.set_pwm_freq(100)
 
         
 
@@ -88,6 +88,7 @@ class Lights(Thread):
                                   'rho':rho,
                                   'theta':theta,
                                   'intensity':intensity,
+                                  'last_intensity':0, 
                                   })
         self.strands = []
         add_strand( self.pwm[1], 3, 6, 5, 1, 0, 0 )
@@ -110,6 +111,19 @@ class Lights(Thread):
         add_strand( self.pwm[0], 2, 5, 6, 1, 1, 0 )
         add_strand( self.pwm[0], 1, 5, 6, 1, 1, 0 )
         add_strand( self.pwm[0], 0, 5, 6, 1, 1, 0 )
+
+        self.transforms = {}
+        self.transforms['randomize']= {'name':'randomize',
+                                'func':self.randomize,
+                                'active':False,
+                                }
+        self.transforms['solid']= {'name':'solid',
+                                'func':self.solid,
+                                'active':True,
+                                }
+        for k,v in self.transforms.items():
+            print('transform:',k)
+            print(v)
 
 
         
@@ -182,14 +196,72 @@ class Lights(Thread):
                 for p in self.pwm:
                     p.set_all_pwm(0,0)
                 self.run_lights = False
+            elif self.cmd == 'transform':
+##                self.cmd_transform(curq)
+                print('got transform cmd, q: ',curq)
+                if curq['name'] in self.transforms:
+                    t_name = curq['name']
+##                    print('found itin transforms:',t_name)
+##                    print('before update')
+##                    print(self.transforms)
+##                    for k,v in self.transforms[t_name].items():
+##                        print('transkey',k)
+##                        print('transval',v)
+                        
+                    for k,v in curq.items():
+##                        print('curq key:',k)
+##                        print('curq value:',v)
+                        if k in self.transforms[t_name]:
+##                            print('found in transforms')
+                            if k == u'active':
+##                                print('found active key')
+                                if v in [u'True',u'true',u'On',u'on',u'1']:
+                                    self.transforms[t_name]['active'] = True
+                                elif v in [u'False',u'false',u'Off',u'off',u'0']:
+                                    self.transforms[t_name]['active'] = False
+                            else:
+                                self.transforms[t_name][k] = v
+
+##                    print('after update')
+##                    print(self.transforms)
+##                    for k,v in self.transforms[t_name].items():
+##                        print('transkey',k)
+##                        print('transval',v)
+                else:
+                    print('not in transforms')
+            self.q.task_done()
             self.update_status()
             return curq
         else: 
             return None
 
+##    def cmd_transform(self,curq):
+##        """ update transforms based on commands in curq,
+##            a dict provided by user
+##        """
+##        print('curq:',curq)
+##        if 'name' in curq:
+##            if curq['name'] in self.tranforms:
+##                curtransform = curq['name']
+##                del curq['name']
+##                for k,v in curq.items():
+##                    self.transforms[curtransform][k] = v
+##                print('transform ',curtransform)
+##                print(self.transforms[curtransform])
+            
     def update_strands(self):
         for strand in self.strands:
-            strand['pwm'].set_pwm(strand['channel'],0,strand['intensity'])                                      
+            if strand['intensity'] != strand['last_intensity']:
+                strand['pwm'].set_pwm(strand['channel'],0,strand['intensity'])
+            strand['last_intensity'] = strand['intensity']           
+
+    def randomize(self):
+        for strand in self.strands:
+            strand['intensity'] = random.randint(self.minbright,self.maxbright)
+
+    def solid(self):
+        for strand in self.strands:
+            strand['intensity'] = self.maxbright
 
     def run(self):
         self.run_lights =  True
@@ -230,9 +302,10 @@ class Lights(Thread):
                 
             if self.run_lights:
 
-                for strand in self.strands:
-                    strand['intensity'] = random.randint(self.minbright,self.maxbright)
-
+                for transform in self.transforms.values():
+                    if transform['active']:
+##                        print('Active transform: ',transform['name'])
+                        transform['func']();
                 self.update_strands()
 
             else:
