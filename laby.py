@@ -13,12 +13,13 @@
 
 from __future__ import division
 from __future__ import print_function
+import collections
 from threading import Thread
 import multiprocessing as mp
 import Queue
 import time
 from multiprocessing.managers import BaseManager
-
+import math
 
 import Adafruit_PCA9685
 import random
@@ -93,34 +94,40 @@ class Lights(Thread):
         self.strands = []
         add_strand( self.pwm[1], 3, 6, 5, 1, 0, 0 )
         add_strand( self.pwm[1], 2, 5, 6, 1, 1, 0 )
-        add_strand( self.pwm[1], 1, 5, 6, 1, 1, 0 )
-        add_strand( self.pwm[1], 0, 5, 6, 1, 1, 0 )
-        add_strand( self.pwm[0], 15, 5, 6, 2, 1, 0 )
+        add_strand( self.pwm[1], 1, 5, 6, 1, 2, 0 )
+        add_strand( self.pwm[1], 0, 5, 6, 1, 3, 0 )
+        add_strand( self.pwm[0], 15, 5, 6, 2, 0, 0 )
         add_strand( self.pwm[0], 14, 5, 6, 2, 1, 0 )
-        add_strand( self.pwm[0], 13, 5, 6, 2, 1, 0 )
-        add_strand( self.pwm[0], 12, 5, 6, 2, 1, 0 )
-        add_strand( self.pwm[0], 11, 5, 6, 3, 1, 0 )
+        add_strand( self.pwm[0], 13, 5, 6, 2, 2, 0 )
+        add_strand( self.pwm[0], 12, 5, 6, 2, 3, 0 )
+        add_strand( self.pwm[0], 11, 5, 6, 3, 0, 0 )
         add_strand( self.pwm[0], 10, 5, 6, 3, 1, 0 )
-        add_strand( self.pwm[0], 9, 5, 6, 3, 1, 0 )
-        add_strand( self.pwm[0], 8, 5, 6, 3, 1, 0 )
-        add_strand( self.pwm[0], 7, 5, 6, 2, 1, 0 )
-        add_strand( self.pwm[0], 6, 5, 6, 2, 1, 0 )
-        add_strand( self.pwm[0], 5, 5, 6, 2, 1, 0 )
-        add_strand( self.pwm[0], 4, 5, 6, 2, 1, 0 )
-        add_strand( self.pwm[0], 3, 5, 6, 1, 1, 0 )
-        add_strand( self.pwm[0], 2, 5, 6, 1, 1, 0 )
-        add_strand( self.pwm[0], 1, 5, 6, 1, 1, 0 )
-        add_strand( self.pwm[0], 0, 5, 6, 1, 1, 0 )
+        add_strand( self.pwm[0], 9, 5, 6, 3, 2, 0 )
+        add_strand( self.pwm[0], 8, 5, 6, 3, 3, 0 )
+        add_strand( self.pwm[0], 7, 5, 6, 4, 0, 0 )
+        add_strand( self.pwm[0], 6, 5, 6, 4, 1, 0 )
+        add_strand( self.pwm[0], 5, 5, 6, 4, 2, 0 )
+        add_strand( self.pwm[0], 4, 5, 6, 4, 3, 0 )
+        add_strand( self.pwm[0], 3, 5, 6, 5, 0, 0 )
+        add_strand( self.pwm[0], 2, 5, 6, 5, 1, 0 )
+        add_strand( self.pwm[0], 1, 5, 6, 5, 2, 0 )
+        add_strand( self.pwm[0], 0, 5, 6, 5, 3, 0 )
 
-        self.transforms = {}
-        self.transforms['randomize']= {'name':'randomize',
-                                'func':self.randomize,
-                                'active':False,
-                                }
+        self.update_strandinfo()
+
+        self.transforms = collections.OrderedDict()
         self.transforms['solid']= {'name':'solid',
                                 'func':self.solid,
                                 'active':True,
                                 }
+        self.transforms['randomize']= {'name':'randomize',
+                                'func':self.randomize,
+                                'active':False,
+                                }
+        self.transforms['rotate']= {'name':'rotate',
+                                    'func':self.rotate,
+                                    'active':True,
+                                    }
         for k,v in self.transforms.items():
             print('transform:',k)
             print(v)
@@ -132,6 +139,31 @@ class Lights(Thread):
         self.qmgr = QueueManager(address=('127.0.0.1',50001),authkey='labyrinth')
         self.qmgr.connect()
         self.q = self.qmgr.get_queue()
+
+    def update_strandinfo(self):
+        """updates min and max values for all strand fields.
+            only needs to be called after building the model with add_strand in __init__
+        """
+        params = ['x','y','rho','theta']
+        infos =  ['min','max']
+        self.strandinfo = { param: { info : None for info in infos} for param in params }
+##        print('self.strands:',self.strands)
+##        print('self.strandinfo:',self.strandinfo)
+        for s in self.strands:
+            for p in params:
+                for i in infos:
+                    if self.strandinfo[p][i] is None:
+                        self.strandinfo[p][i] = s[p]
+                    else:
+##                        print('s[p],p,i,self.strandinfo[p][i]: ',s[p],p,i,self.strandinfo[p][i],sep=' ')
+                        if i is 'min' and s[p] < self.strandinfo[p]['min']:
+                            self.strandinfo[p]['min'] = s[p]
+                        if i is 'max' and s[p] > self.strandinfo[p]['max']:
+                            self.strandinfo[p]['max'] = s[p]
+
+##        print('strandinfo:',self.strandinfo)
+                            
+            
 
     def update_status(self):
         print('cycle_time: ',self.cycle_time)
@@ -255,13 +287,28 @@ class Lights(Thread):
                 strand['pwm'].set_pwm(strand['channel'],0,strand['intensity'])
             strand['last_intensity'] = strand['intensity']           
 
-    def randomize(self):
+    def randomize(self,step):
         for strand in self.strands:
             strand['intensity'] = random.randint(self.minbright,self.maxbright)
 
-    def solid(self):
+    def solid(self,step):
         for strand in self.strands:
             strand['intensity'] = self.maxbright
+
+    def rotate(self,step):
+        """step is 0..1"""
+        thetamin = self.strandinfo['theta']['min']
+        thetamax = self.strandinfo['theta']['max']
+        thetarange = thetamax-thetamin
+        thetacount = 4
+##        print('min,max,range',thetamin,thetamax,thetarange,sep='  ')
+        for strand in self.strands:
+            a = abs(math.cos(abs(strand['theta']-step*thetacount)/thetacount*math.pi))
+##            a = abs(math.sin((((strand['theta']-thetamin)/thetarange)+step)*math.pi))
+            strand['intensity'] = int(strand['intensity'] * a)
+##            print('strands: theta, intensity: ',strand['theta'],strand['intensity'])
+        pass
+        
 
     def run(self):
         self.run_lights =  True
@@ -277,7 +324,7 @@ class Lights(Thread):
             if cur_cycle_time > self.cycle_time:
                 start_time = time.time()
                 start_step_time = start_time
-                print('new cycle',cur_cycle_time)
+##                print('new cycle',cur_cycle_time)
                 continue
 
             cur_step_time = curtime - start_step_time
@@ -305,7 +352,7 @@ class Lights(Thread):
                 for transform in self.transforms.values():
                     if transform['active']:
 ##                        print('Active transform: ',transform['name'])
-                        transform['func']();
+                        transform['func'](curstep);
                 self.update_strands()
 
             else:
