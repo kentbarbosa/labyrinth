@@ -136,7 +136,7 @@ class Lights(Thread):
         
         class QueueManager(BaseManager):pass
         QueueManager.register('get_queue')
-        self.qmgr = QueueManager(address=('127.0.0.1',50001),authkey='labyrinth')
+        self.qmgr = QueueManager(address=('127.0.0.1',50001),authkey=b'labyrinth')
         self.qmgr.connect()
         self.q = self.qmgr.get_queue()
 

@@ -13,7 +13,7 @@ from forms import LightParamsForm
 
 class QueueManager(BaseManager):pass
 QueueManager.register('get_queue')
-qmgr = QueueManager(address=('127.0.0.1',50001),authkey='labyrinth')
+qmgr = QueueManager(address=('127.0.0.1',50001),authkey=b'labyrinth')
 qmgr.connect()
 cmdq = qmgr.get_queue()
 
