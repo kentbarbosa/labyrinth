@@ -23,7 +23,7 @@ import math
 
 import Adafruit_PCA9685
 import random
-
+import numpy as np
 
 ##class Strands():
 ##    def __init__(self):
@@ -90,7 +90,7 @@ class Lights(Thread):
         
 
         def add_strand(pwm,channel,x,y,rho,theta,intensity=0):
-            self.strands.append( {'pwm':pwm,
+            self.strands_orig.append( {'pwm':pwm,
                                   'channel':channel,
                                   'x':x,
                                   'y':y,
@@ -99,7 +99,7 @@ class Lights(Thread):
                                   'intensity':intensity,
                                   'last_intensity':0, 
                                   })
-        self.strands = []
+        self.strands_orig = []
         add_strand( self.pwm[1], 3, 6, 5, 1, 0, 0 )
         add_strand( self.pwm[1], 2, 5, 6, 1, 1, 0 )
         add_strand( self.pwm[1], 1, 5, 6, 1, 2, 0 )
@@ -134,7 +134,7 @@ class Lights(Thread):
                                 }
         self.transforms['rotate']= {'name':'rotate',
                                     'func':self.rotate,
-                                    'active':True,
+                                    'active':False,
                                     }
         for k,v in self.transforms.items():
             print('transform:',k)
@@ -149,27 +149,32 @@ class Lights(Thread):
         self.q = self.qmgr.get_queue()
 
     def update_strandinfo(self):
-        """updates min and max values for all strand fields.
+        """create numpy arrays for the strands.
+            updates min and max values for all strand fields.
             only needs to be called after building the model with add_strand in __init__
         """
         params = ['x','y','rho','theta']
-        infos =  ['min','max']
-        self.strandinfo = { param: { info : None for info in infos} for param in params }
-##        print('self.strands:',self.strands)
-##        print('self.strandinfo:',self.strandinfo)
-        for s in self.strands:
-            for p in params:
-                for i in infos:
-                    if self.strandinfo[p][i] is None:
-                        self.strandinfo[p][i] = s[p]
-                    else:
-##                        print('s[p],p,i,self.strandinfo[p][i]: ',s[p],p,i,self.strandinfo[p][i],sep=' ')
-                        if i is 'min' and s[p] < self.strandinfo[p]['min']:
-                            self.strandinfo[p]['min'] = s[p]
-                        if i is 'max' and s[p] > self.strandinfo[p]['max']:
-                            self.strandinfo[p]['max'] = s[p]
+        infos =  {'min':np.min,'max':np.max}
 
-##        print('strandinfo:',self.strandinfo)
+        self.strands = {}
+
+        for f in ['pwm','channel']:
+            self.strands[f] = [ s[f] for s in self.strands_orig]
+
+        for f in params:
+            if f in self.strands_orig[0]:
+                self.strands[f] = np.array([ s[f] for s in self.strands_orig])
+
+        for f in ['intensity','last_intensity']:
+            self.strands[f] = np.zeros_like(self.strands['x'])
+
+        print('self.strands:', self.strands)
+        self.strandinfo = { param: { info : None for info in infos} for param in params }
+        for p in params:
+            for ik,iv in infos.items():
+                self.strandinfo[p][ik] = iv(self.strands[p])
+
+        print('strandinfo:',self.strandinfo)
                             
             
 
@@ -290,18 +295,25 @@ class Lights(Thread):
 ##                print(self.transforms[curtransform])
             
     def update_strands(self):
-        for strand in self.strands:
-            if strand['intensity'] != strand['last_intensity']:
-                strand['pwm'].set_pwm(strand['channel'],0,strand['intensity'])
-            strand['last_intensity'] = strand['intensity']           
+##        for strand in self.strands:
+##            if strand['intensity'] != strand['last_intensity']:
+##                strand['pwm'].set_pwm(strand['channel'],0,strand['intensity'])
+##            strand['last_intensity'] = strand['intensity']
+        changed = self.strands['intensity'] != self.strands['last_intensity']
+        for i,c in enumerate(changed):
+            if c:
+                self.strands['pwm'][i].set_pwm(int(self.strands['channel'][i]),
+                                            0,
+                                            int(self.strands['intensity'][i]))
 
     def randomize(self,step):
         for strand in self.strands:
-            strand['intensity'] = random.randint(self.minbright,self.maxbright)
+            strand['intensity'] = np.random.randint(self.minbright,self.maxbright+1,
+                                                    self.strands['intensity'].shape)
 
     def solid(self,step):
-        for strand in self.strands:
-            strand['intensity'] = self.maxbright
+        self.strands['intensity'] = np.full(self.strands['intensity'].shape,
+                                                  self.maxbright)
 
     def rotate(self,step):
         """step is 0..1"""
