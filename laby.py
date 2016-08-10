@@ -21,7 +21,13 @@ import time
 from multiprocessing.managers import BaseManager
 import math
 
-import Adafruit_PCA9685
+try:
+    import Adafruit_PCA9685
+    have_PCA9685 = True
+except ImportError:
+    have_PCA9685 = False
+
+
 import random
 import numpy as np
 
@@ -82,10 +88,15 @@ class Lights(Thread):
         self.maxbright = 4095
         self.cmd = None
         self.pwm = []
-        self.pwm.append(Adafruit_PCA9685.PCA9685(address=0x40))
-        self.pwm.append(Adafruit_PCA9685.PCA9685(address=0x41))
+        for i2c_addr in [ 0x40, 0x41 ]:
+            try:
+                self.pwm.append(Adafruit_PCA9685.PCA9685(address=i2c_addr))
+            except NameError:
+                self.pwm.append( None )
+            
         for p in self.pwm:
-            p.set_pwm_freq(100)
+            if p:
+                p.set_pwm_freq(100)
 
         
 
@@ -163,10 +174,10 @@ class Lights(Thread):
 
         for f in params:
             if f in self.strands_orig[0]:
-                self.strands[f] = np.array([ s[f] for s in self.strands_orig])
+                self.strands[f] = np.array([ s[f] for s in self.strands_orig],dtype=np.int16)
 
         for f in ['intensity','last_intensity']:
-            self.strands[f] = np.zeros_like(self.strands['x'])
+            self.strands[f] = np.zeros_like(self.strands['x'],dtype=np.int16)
 
         print('self.strands:', self.strands)
         self.strandinfo = { param: { info : None for info in infos} for param in params }
@@ -239,7 +250,8 @@ class Lights(Thread):
                 self.kill = True
             elif self.cmd == 'off':
                 for p in self.pwm:
-                    p.set_all_pwm(0,0)
+                    if p:
+                        p.set_all_pwm(0,0)
                 self.run_lights = False
             elif self.cmd == 'transform':
 ##                self.cmd_transform(curq)
@@ -300,32 +312,38 @@ class Lights(Thread):
 ##                strand['pwm'].set_pwm(strand['channel'],0,strand['intensity'])
 ##            strand['last_intensity'] = strand['intensity']
         changed = self.strands['intensity'] != self.strands['last_intensity']
+        self.strands['last_intensity'] = self.strands['intensity'].copy()
         for i,c in enumerate(changed):
             if c:
-                self.strands['pwm'][i].set_pwm(int(self.strands['channel'][i]),
+                try:
+                    self.strands['pwm'][i].set_pwm(int(self.strands['channel'][i]),
                                             0,
                                             int(self.strands['intensity'][i]))
-
+                except:
+                    print( 'channel {}: intensity {} {}'.format(
+                        self.strands['channel'][i],
+                        self.strands['intensity'][i],
+                        self.strands['intensity'][i].dtype))
+                           
     def randomize(self,step):
-        for strand in self.strands:
-            strand['intensity'] = np.random.randint(self.minbright,self.maxbright+1,
-                                                    self.strands['intensity'].shape)
+            self.strands['intensity'] = np.random.randint(self.minbright,self.maxbright+1,
+                                                    self.strands['intensity'].shape,
+                                                    dtype=np.int16)
 
     def solid(self,step):
         self.strands['intensity'] = np.full(self.strands['intensity'].shape,
-                                                  self.maxbright)
+                                                  self.maxbright,
+                                            dtype=np.int16)
 
     def rotate(self,step):
-        """step is 0..1"""
+        """step is [0..1]"""
         thetamin = self.strandinfo['theta']['min']
         thetamax = self.strandinfo['theta']['max']
         thetarange = thetamax-thetamin
-        thetacount = 4
+        thetacount = 4 #todo
 ##        print('min,max,range',thetamin,thetamax,thetarange,sep='  ')
-        for strand in self.strands:
-            a = abs(math.cos(abs(strand['theta']-step*thetacount)/thetacount*math.pi))
-##            a = abs(math.sin((((strand['theta']-thetamin)/thetarange)+step)*math.pi))
-            strand['intensity'] = int(strand['intensity'] * a)
+        a = np.abs(np.cos(np.abs(self.strands['theta']-step*thetacount)/thetacount*np.pi))
+        self.strands['intensity'] = np.int16(self.strands['intensity'] * a)
 ##            print('strands: theta, intensity: ',strand['theta'],strand['intensity'])
         pass
         
