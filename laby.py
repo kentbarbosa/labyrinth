@@ -56,6 +56,14 @@ import random
 ##                 'intensity':self.intensity[i],
 ##                 }
 
+strand_fields = ['pwm',
+                'channel',
+                'x',
+                'y',
+                'rho',
+                'theta',
+                'intensity',
+                'last_intensity' ]
 
 class Lights(Thread):
     def __init__(self):
