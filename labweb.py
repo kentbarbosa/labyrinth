@@ -80,4 +80,8 @@ def slower():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=80, debug=True)
+    from os import environ
+    if 'WINGDB_ACTIVE' in environ:
+        app.debug = False
+    
+    app.run(host='0.0.0.0', port=80, use_reloader=True)
