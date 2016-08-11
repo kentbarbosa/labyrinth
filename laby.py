@@ -76,7 +76,6 @@ class Lights(Thread):
         Thread.__init__(self)
         self.kill = False
         self.run_lights = False
-        self.step = 64
         self.cycle_time = 5.0 #seconds
         self.mincycle_time = 0.5
         self.maxcycle_time = 600.0
@@ -202,10 +201,8 @@ class Lights(Thread):
             if 'cmd' in curq:
                 self.cmd = curq['cmd']
             print ("received: ", curq)
-            if self.cmd == 'step':
-                if 'value' in curq:
-                    self.step = curq['value']
-            elif self.cmd == 'min':
+            
+            if self.cmd == 'min':
                 if 'value' in curq:
                     self.minbright = int(float(curq['value'])*4095)
                     if self.minbright<0:
@@ -252,6 +249,7 @@ class Lights(Thread):
                 for p in self.pwm:
                     if p:
                         p.set_all_pwm(0,0)
+                self.strands['intensity'] = np.zeros_like(self.strands['intensity'])
                 self.run_lights = False
             elif self.cmd == 'transform':
 ##                self.cmd_transform(curq)
@@ -350,9 +348,7 @@ class Lights(Thread):
 
     def run(self):
         self.run_lights =  True
-        print('Running LEDs, press Ctrl-C to quit...')
-        #x = 0
-        #curside = 0
+        print('Running LEDs...')
         start_time = time.time()
         start_step_time = start_time
 
@@ -362,23 +358,15 @@ class Lights(Thread):
             if cur_cycle_time > self.cycle_time:
                 start_time = time.time()
                 start_step_time = start_time
-##                print('new cycle',cur_cycle_time)
                 continue
 
             cur_step_time = curtime - start_step_time
             if cur_step_time < self.step_time:
                 continue
-##            print('new step',cur_step_time)
-##            print('self.step_time: ',self.step_time)
             start_step_time = curtime
 
             #step is [0..1] and is time independent
             curstep = cur_cycle_time/ self.cycle_time
-##            if cur_step_time >= self.step_time:
-##                continue
-##            if curstep > 1.0 :
-##                starttime = curtime
-##                continue
             if self.checkq():
                 #something may have changed, recalc anything needed here
                 
