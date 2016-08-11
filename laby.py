@@ -112,24 +112,24 @@ class Lights(Thread):
         self.strands_orig = []
         add_strand( self.pwm[1], 3, 6, 5, 1, 0, 0 )
         add_strand( self.pwm[1], 2, 5, 6, 1, 1, 0 )
-        add_strand( self.pwm[1], 1, 5, 6, 1, 2, 0 )
-        add_strand( self.pwm[1], 0, 5, 6, 1, 3, 0 )
-        add_strand( self.pwm[0], 15, 5, 6, 2, 0, 0 )
-        add_strand( self.pwm[0], 14, 5, 6, 2, 1, 0 )
-        add_strand( self.pwm[0], 13, 5, 6, 2, 2, 0 )
-        add_strand( self.pwm[0], 12, 5, 6, 2, 3, 0 )
-        add_strand( self.pwm[0], 11, 5, 6, 3, 0, 0 )
-        add_strand( self.pwm[0], 10, 5, 6, 3, 1, 0 )
-        add_strand( self.pwm[0], 9, 5, 6, 3, 2, 0 )
-        add_strand( self.pwm[0], 8, 5, 6, 3, 3, 0 )
-        add_strand( self.pwm[0], 7, 5, 6, 4, 0, 0 )
-        add_strand( self.pwm[0], 6, 5, 6, 4, 1, 0 )
-        add_strand( self.pwm[0], 5, 5, 6, 4, 2, 0 )
-        add_strand( self.pwm[0], 4, 5, 6, 4, 3, 0 )
-        add_strand( self.pwm[0], 3, 5, 6, 5, 0, 0 )
-        add_strand( self.pwm[0], 2, 5, 6, 5, 1, 0 )
-        add_strand( self.pwm[0], 1, 5, 6, 5, 2, 0 )
-        add_strand( self.pwm[0], 0, 5, 6, 5, 3, 0 )
+        add_strand( self.pwm[1], 1, 4, 5, 1, 2, 0 )
+        add_strand( self.pwm[1], 0, 5, 4, 1, 3, 0 )
+        add_strand( self.pwm[0], 15, 7, 5, 2, 0, 0 )
+        add_strand( self.pwm[0], 14, 5, 7, 2, 1, 0 )
+        add_strand( self.pwm[0], 13, 3, 5, 2, 2, 0 )
+        add_strand( self.pwm[0], 12, 5, 3, 2, 3, 0 )
+        add_strand( self.pwm[0], 11, 8, 5, 3, 0, 0 )
+        add_strand( self.pwm[0], 10, 5, 8, 3, 1, 0 )
+        add_strand( self.pwm[0], 9, 2, 5, 3, 2, 0 )
+        add_strand( self.pwm[0], 8, 5, 2, 3, 3, 0 )
+        add_strand( self.pwm[0], 7, 9, 5, 4, 0, 0 )
+        add_strand( self.pwm[0], 6, 5, 9, 4, 1, 0 )
+        add_strand( self.pwm[0], 5, 1, 5, 4, 2, 0 )
+        add_strand( self.pwm[0], 4, 5, 1, 4, 3, 0 )
+        add_strand( self.pwm[0], 3, 10, 5, 5, 0, 0 )
+        add_strand( self.pwm[0], 2, 5, 10, 5, 1, 0 )
+        add_strand( self.pwm[0], 1, 0, 5, 5, 2, 0 )
+        add_strand( self.pwm[0], 0, 5, 0, 5, 3, 0 )
 
         self.update_strandinfo()
 
@@ -145,6 +145,10 @@ class Lights(Thread):
         self.transforms['rotate']= {'name':'rotate',
                                     'func':self.rotate,
                                     'active':False,
+                                    }
+        self.transforms['xbounce']= {'name':'xbounce',
+                                    'func':self.xbounce,
+                                    'active':True,
                                     }
         for k,v in self.transforms.items():
             print('transform:',k)
@@ -164,7 +168,9 @@ class Lights(Thread):
             only needs to be called after building the model with add_strand in __init__
         """
         params = ['x','y','rho','theta']
-        infos =  {'min':np.min,'max':np.max}
+        infos =  {'min':np.min,
+                  'max':np.max,
+                  'count':lambda x:len(set(x))}
 
         self.strands = {}
 
@@ -337,11 +343,22 @@ class Lights(Thread):
         thetamin = self.strandinfo['theta']['min']
         thetamax = self.strandinfo['theta']['max']
         thetarange = thetamax-thetamin
-        thetacount = 4 #todo
+        thetacount = self.strandinfo['theta']['count'] #todo
 ##        print('min,max,range',thetamin,thetamax,thetarange,sep='  ')
         a = np.abs(np.cos(np.abs(self.strands['theta']-step*thetacount)/thetacount*np.pi))
         self.strands['intensity'] = np.int16(self.strands['intensity'] * a)
 ##            print('strands: theta, intensity: ',strand['theta'],strand['intensity'])
+        pass
+
+    def xbounce(self,step):
+        """step is [0..1]"""
+        min = self.strandinfo['x']['min']
+        max = self.strandinfo['x']['max']
+        count = self.strandinfo['x']['count'] #todo
+##        print('min,max,range',min,max,sep='  ')
+        a = np.abs(np.cos(np.abs(self.strands['x']-step*count)/count*np.pi))
+        self.strands['intensity'] = np.int16(self.strands['intensity'] * a)
+##        print('strands: x, intensity: ',self.strands['x'],['intensity'])
         pass
         
 
