@@ -325,8 +325,7 @@ class Lights(Thread):
                            
     def randomize(self,step):
             self.strands['intensity'] = np.random.randint(self.minbright,self.maxbright+1,
-                                                    self.strands['intensity'].shape,
-                                                    dtype=np.int16)
+                                                    self.strands['intensity'].shape)
 
     def solid(self,step):
         self.strands['intensity'] = np.full(self.strands['intensity'].shape,
