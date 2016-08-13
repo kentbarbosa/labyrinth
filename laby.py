@@ -30,37 +30,8 @@ except ImportError:
 
 import random
 import numpy as np
+import numpy.ma as ma
 
-##class Strands():
-##    def __init__(self):
-##        self.pwm=[]
-##        self.channel=[]
-##        self.x=[]
-##        self.y=[]
-##        self.rho=[]
-##        self.theta=[]
-##        self.intensity=[]
-##        num_strands = 0
-##
-##    def add_strand(self,pwm,channel,x,y,rho,theta,intensity=0):
-##        self.pwm.append(pwm)
-##        self.channel.append(channel)
-##        self.x.append(x)
-##        self.y.append(y)
-##        self.rho.append(rho)
-##        self.theta.append(theta)
-##        self.intensity.append(intensity)
-##        self.num_strands = len(self.pwm)
-##
-##    def get_strand(self,i):
-##        return { 'pwm': self.pwm[i],
-##                 'channel': self.channel[i],
-##                 'x':self.x[i],
-##                 'y': self.y[i],
-##                 'rho': self.rho[i],
-##                 'theta':self.theta[i],
-##                 'intensity':self.intensity[i],
-##                 }
 
 strand_fields = ['pwm',
                 'channel',
@@ -110,26 +81,26 @@ class Lights(Thread):
                                   'last_intensity':0, 
                                   })
         self.strands_orig = []
-        add_strand( self.pwm[1], 3, 6, 5, 1, 0, 0 )
-        add_strand( self.pwm[1], 2, 5, 6, 1, 1, 0 )
-        add_strand( self.pwm[1], 1, 4, 5, 1, 2, 0 )
-        add_strand( self.pwm[1], 0, 5, 4, 1, 3, 0 )
-        add_strand( self.pwm[0], 15, 7, 5, 2, 0, 0 )
-        add_strand( self.pwm[0], 14, 5, 7, 2, 1, 0 )
-        add_strand( self.pwm[0], 13, 3, 5, 2, 2, 0 )
-        add_strand( self.pwm[0], 12, 5, 3, 2, 3, 0 )
-        add_strand( self.pwm[0], 11, 8, 5, 3, 0, 0 )
-        add_strand( self.pwm[0], 10, 5, 8, 3, 1, 0 )
-        add_strand( self.pwm[0], 9, 2, 5, 3, 2, 0 )
-        add_strand( self.pwm[0], 8, 5, 2, 3, 3, 0 )
-        add_strand( self.pwm[0], 7, 9, 5, 4, 0, 0 )
-        add_strand( self.pwm[0], 6, 5, 9, 4, 1, 0 )
-        add_strand( self.pwm[0], 5, 1, 5, 4, 2, 0 )
-        add_strand( self.pwm[0], 4, 5, 1, 4, 3, 0 )
-        add_strand( self.pwm[0], 3, 10, 5, 5, 0, 0 )
-        add_strand( self.pwm[0], 2, 5, 10, 5, 1, 0 )
-        add_strand( self.pwm[0], 1, 0, 5, 5, 2, 0 )
-        add_strand( self.pwm[0], 0, 5, 0, 5, 3, 0 )
+        add_strand( self.pwm[1],  3,  6,  5, 1, 0, 0 )
+        add_strand( self.pwm[1],  2,  5,  6, 1, 1, 0 )
+        add_strand( self.pwm[1],  1,  4,  5, 1, 2, 0 )
+        add_strand( self.pwm[1],  0,  5,  4, 1, 3, 0 )
+        add_strand( self.pwm[0], 15,  7,  5, 2, 0, 0 )
+        add_strand( self.pwm[0], 14,  5,  7, 2, 1, 0 )
+        add_strand( self.pwm[0], 13,  3,  5, 2, 2, 0 )
+        add_strand( self.pwm[0], 12,  5,  3, 2, 3, 0 )
+        add_strand( self.pwm[0], 11,  8,  5, 3, 0, 0 )
+        add_strand( self.pwm[0], 10,  5,  8, 3, 1, 0 )
+        add_strand( self.pwm[0],  9,  2,  5, 3, 2, 0 )
+        add_strand( self.pwm[0],  8,  5,  2, 3, 3, 0 )
+        add_strand( self.pwm[0],  7,  9,  5, 4, 0, 0 )
+        add_strand( self.pwm[0],  6,  5,  9, 4, 1, 0 )
+        add_strand( self.pwm[0],  5,  1,  5, 4, 2, 0 )
+        add_strand( self.pwm[0],  4,  5,  1, 4, 3, 0 )
+        add_strand( self.pwm[0],  3, 10,  5, 5, 0, 0 )
+        add_strand( self.pwm[0],  2,  5, 10, 5, 1, 0 )
+        add_strand( self.pwm[0],  1,  0,  5, 5, 2, 0 )
+        add_strand( self.pwm[0],  0,  5,  0, 5, 3, 0 )
 
         self.update_strandinfo()
 
@@ -148,7 +119,11 @@ class Lights(Thread):
                                     }
         self.transforms['xbounce']= {'name':'xbounce',
                                     'func':self.xbounce,
-                                    'active':True,
+                                    'active':False,
+                                    }
+        self.transforms['ybounce']= {'name':'ybounce',
+                                    'func':self.ybounce,
+                                    'active':False,
                                     }
         for k,v in self.transforms.items():
             print('transform:',k)
@@ -184,12 +159,12 @@ class Lights(Thread):
         for f in ['intensity','last_intensity']:
             self.strands[f] = np.zeros_like(self.strands['x'],dtype=np.int16)
 
-        print('self.strands:', self.strands)
         self.strandinfo = { param: { info : None for info in infos} for param in params }
         for p in params:
             for ik,iv in infos.items():
                 self.strandinfo[p][ik] = iv(self.strands[p])
 
+        print('self.strands:', self.strands)
         print('strandinfo:',self.strandinfo)
                             
             
@@ -258,36 +233,19 @@ class Lights(Thread):
                 self.strands['intensity'] = np.zeros_like(self.strands['intensity'])
                 self.run_lights = False
             elif self.cmd == 'transform':
-##                self.cmd_transform(curq)
                 print('got transform cmd, q: ',curq)
                 if curq['name'] in self.transforms:
                     t_name = curq['name']
-##                    print('found itin transforms:',t_name)
-##                    print('before update')
-##                    print(self.transforms)
-##                    for k,v in self.transforms[t_name].items():
-##                        print('transkey',k)
-##                        print('transval',v)
                         
                     for k,v in curq.items():
-##                        print('curq key:',k)
-##                        print('curq value:',v)
                         if k in self.transforms[t_name]:
-##                            print('found in transforms')
                             if k == u'active':
-##                                print('found active key')
                                 if v in [u'True',u'true',u'On',u'on',u'1']:
                                     self.transforms[t_name]['active'] = True
                                 elif v in [u'False',u'false',u'Off',u'off',u'0']:
                                     self.transforms[t_name]['active'] = False
                             else:
                                 self.transforms[t_name][k] = v
-
-##                    print('after update')
-##                    print(self.transforms)
-##                    for k,v in self.transforms[t_name].items():
-##                        print('transkey',k)
-##                        print('transval',v)
                 else:
                     print('not in transforms')
             self.q.task_done()
@@ -295,26 +253,8 @@ class Lights(Thread):
             return curq
         else: 
             return None
-
-##    def cmd_transform(self,curq):
-##        """ update transforms based on commands in curq,
-##            a dict provided by user
-##        """
-##        print('curq:',curq)
-##        if 'name' in curq:
-##            if curq['name'] in self.tranforms:
-##                curtransform = curq['name']
-##                del curq['name']
-##                for k,v in curq.items():
-##                    self.transforms[curtransform][k] = v
-##                print('transform ',curtransform)
-##                print(self.transforms[curtransform])
-            
+         
     def update_strands(self):
-##        for strand in self.strands:
-##            if strand['intensity'] != strand['last_intensity']:
-##                strand['pwm'].set_pwm(strand['channel'],0,strand['intensity'])
-##            strand['last_intensity'] = strand['intensity']
         changed = self.strands['intensity'] != self.strands['last_intensity']
         self.strands['last_intensity'] = self.strands['intensity'].copy()
         for i,c in enumerate(changed):
@@ -343,24 +283,33 @@ class Lights(Thread):
         thetamin = self.strandinfo['theta']['min']
         thetamax = self.strandinfo['theta']['max']
         thetarange = thetamax-thetamin
-        thetacount = self.strandinfo['theta']['count'] #todo
-##        print('min,max,range',thetamin,thetamax,thetarange,sep='  ')
+        thetacount = self.strandinfo['theta']['count'] 
         a = np.abs(np.cos(np.abs(self.strands['theta']-step*thetacount)/thetacount*np.pi))
         self.strands['intensity'] = np.int16(self.strands['intensity'] * a)
-##            print('strands: theta, intensity: ',strand['theta'],strand['intensity'])
-        pass
 
-    def xbounce(self,step):
+    def xybounce(self,step,axis,bounce):
         """step is [0..1]"""
-        min = self.strandinfo['x']['min']
-        max = self.strandinfo['x']['max']
-        count = self.strandinfo['x']['count'] #todo
+        min = self.strandinfo[axis]['min']
+        max = self.strandinfo[axis]['max']
+        count = self.strandinfo[axis]['count'] 
 ##        print('min,max,range',min,max,sep='  ')
-        a = np.abs(np.cos(np.abs(self.strands['x']-step*count)/count*np.pi))
+        a = np.abs(np.cos(np.abs(self.strands[axis]-step*count)/count*np.pi))
+        a[self.strands[axis]==5] = 1.0 #ignores center strands
         self.strands['intensity'] = np.int16(self.strands['intensity'] * a)
-##        print('strands: x, intensity: ',self.strands['x'],['intensity'])
-        pass
+##        print('strands: x, intensity: ',self.strands[axis],['intensity'])
+
+    def xbounce(self,step,bounce=True):
+        self.xybounce(step,'x',bounce)
+
+    def ybounce(self,step,bounce=True):
+        self.xybounce(step,'y',bounce)
         
+    def transform(self,axis,step,bounce=True):
+        """ axis : string 'x','y','rho','theta'
+            step : [0,1] fraction of current cycle. determines where we are in cycle
+            bounce : boolean :
+            """
+        pass
 
     def run(self):
         self.run_lights =  True
