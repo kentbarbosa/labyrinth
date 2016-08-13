@@ -20,7 +20,11 @@
       <a href=/transform?name=randomize&active=False> Randomize off</a> <br>
       <a href=/transform?name=rotate&active=True> Rotate on</a> <br>
       <a href=/transform?name=rotate&active=False> Rotate off</a> <br>
-      
+      <a href=/transform?name=xbounce&active=True> X bounce on</a> <br>
+      <a href=/transform?name=xbounce&active=False> X bounce off</a> <br>
+      <a href=/transform?name=ybounce&active=True> Y bounce on</a> <br>
+      <a href=/transform?name=ybounce&active=False> Y bounce off</a> <br>
+
       <h2> Cycle time in seconds </h2>
       {% for b in [0.5,1.0,2.0,4.0,8.0,16.0,32.0,64.0] %}
           <a href=/cycletime/{{ b }}>{{ b }}</a>
