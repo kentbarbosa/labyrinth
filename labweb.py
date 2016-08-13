@@ -1,6 +1,6 @@
 from multiprocessing import Process, Queue
 from multiprocessing.managers import BaseManager
-from flask import Flask, render_template, redirect
+from flask import Flask, render_template, redirect, request
 app = Flask(__name__)
 
 app.config.from_object('config')
@@ -13,7 +13,7 @@ from forms import LightParamsForm
 
 class QueueManager(BaseManager):pass
 QueueManager.register('get_queue')
-qmgr = QueueManager(address=('127.0.0.1',50001),authkey='labyrinth')
+qmgr = QueueManager(address=('127.0.0.1',50001),authkey=b'labyrinth')
 qmgr.connect()
 cmdq = qmgr.get_queue()
 
@@ -97,6 +97,16 @@ def set_maxbright(maxvalue):
     cmdq.put({'cmd':'max',
               'value':maxvalue})
     return(redirect_home())
+
+@app.route("/transform")
+def transform():
+    cmd = {'cmd':'transform'}
+    for k,v in request.args.items():
+        cmd[k] = v.decode('utf-8')
+    print('transform message:',cmd)
+    cmdq.put(cmd)
+    return(redirect_home())
+              
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80, debug=True)
