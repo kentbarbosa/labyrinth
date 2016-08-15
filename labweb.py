@@ -1,6 +1,6 @@
 from multiprocessing import Process, Queue
 from multiprocessing.managers import BaseManager
-from flask import Flask, render_template, redirect, request
+from flask import Flask, render_template, redirect, request, jsonify
 app = Flask(__name__)
 
 app.config.from_object('config')
@@ -9,6 +9,7 @@ app.config.from_object('config')
 
 from forms import LightParamsForm
 
+sliders = { 'brightness':20}
 
 
 class QueueManager(BaseManager):pass
@@ -106,6 +107,19 @@ def transform():
     print('transform message:',cmd)
     cmdq.put(cmd)
     return(redirect_home())
+
+@app.route("/_sliderchanged")
+def sliderchanged():
+    print('got slider change')
+    print(request.args)
+    slidername = request.args.get('id',None,type=str)
+    sliderval = request.args.get('val',0,type=float)
+    if slidername :
+        sliders[slidername] = sliderval
+    #send update to cmdmanager
+    cmdq.put({'cmd':'max',
+              'value':sliderval})
+    return jsonify(name=slidername,val=sliderval)
               
 
 if __name__ == "__main__":
