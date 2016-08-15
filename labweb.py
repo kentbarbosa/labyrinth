@@ -112,13 +112,16 @@ def transform():
 def sliderchanged():
     print('got slider change')
     print(request.args)
-    slidername = request.args.get('id',None,type=str)
-    sliderval = request.args.get('val',0,type=float)
+    slidername = request.args.get('name',None,type=str)
+    sliderval = request.args.get('value',0,type=float)
     if slidername :
         sliders[slidername] = sliderval
     #send update to cmdmanager
-    cmdq.put({'cmd':'max',
-              'value':sliderval})
+    cmd = {'cmd':'transform',
+           'name' : slidername,
+           'value' : sliderval }
+    print('transform message:',cmd)
+    cmdq.put(cmd)
     return jsonify(name=slidername,val=sliderval)
               
 

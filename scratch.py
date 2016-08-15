@@ -25,3 +25,38 @@
                     #self.pwm[0].set_pwm(7,0,i)
     ##                for side in range(4,8):
     ##                    self.pwm[1].set_pwm(side,0,i)
+
+
+<script type="text/javascript"
+  src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+
+    <script type="text/javascript" src="static/jquery.min.js"></script>
+
+
+        $.getJSON($SCRIPT_ROOT + '/_sliderchanged', {
+            $(this).id : $(this).val()
+            },
+            function(data) {
+                $("p." + data.name).text(data.val);
+                }
+            )
+        }
+
+
+    var submit_form = function(e) {
+      $.getJSON($SCRIPT_ROOT + '/_sliderchanged', {
+        a: $('input[name="a"]').val(),
+        b: $('input[name="b"]').val()
+      }, function(data) {
+        $('#result').text(data.result);
+        $('input[name=a]').focus().select();
+      });
+      return false;
+    };
+
+
+      <form>
+      <input id="brightness" type="range" class="slider" value="0.1" min="0.0" max="1.0" step="0.01">
+      </form>
+    <p id="brightness" >_init_ brightness </p>
+      <br>

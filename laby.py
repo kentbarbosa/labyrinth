@@ -8,6 +8,8 @@
 #   and light hardware updating (runner)
 #7/23/2016: created Strands class to handle location, pwm, channel info
 #           for each strand of lights
+#8/15/2016: handle separate cycle times for each transform
+#           brightness is base transform - would be color if rgb
 #       todo: need to set up status queue
 
 
@@ -20,6 +22,7 @@ import Queue
 import time
 from multiprocessing.managers import BaseManager
 import math
+import pprint
 
 try:
     import Adafruit_PCA9685
@@ -105,25 +108,30 @@ class Lights(Thread):
         self.update_strandinfo()
 
         self.transforms = collections.OrderedDict()
-        self.transforms['solid']= {'name':'solid',
-                                'func':self.solid,
+        self.transforms['brightness']= {'name':'brightness',
+                                'func':self.brightness,
                                 'active':True,
+                                'value':1.0
                                 }
         self.transforms['randomize']= {'name':'randomize',
                                 'func':self.randomize,
                                 'active':False,
+                                'value':0.0
                                 }
         self.transforms['rotate']= {'name':'rotate',
                                     'func':self.rotate,
                                     'active':False,
+                                    'value':0.0
                                     }
         self.transforms['xbounce']= {'name':'xbounce',
                                     'func':self.xbounce,
                                     'active':False,
+                                    'value':0.0
                                     }
         self.transforms['ybounce']= {'name':'ybounce',
                                     'func':self.ybounce,
                                     'active':False,
+                                    'value':0.0
                                     }
         for k,v in self.transforms.items():
             print('transform:',k)
@@ -236,16 +244,28 @@ class Lights(Thread):
                 print('got transform cmd, q: ',curq)
                 if curq['name'] in self.transforms:
                     t_name = curq['name']
-                        
+##                    print('t_name: {}'.format(t_name))
+
                     for k,v in curq.items():
-                        if k in self.transforms[t_name]:
-                            if k == u'active':
-                                if v in [u'True',u'true',u'On',u'on',u'1']:
-                                    self.transforms[t_name]['active'] = True
-                                elif v in [u'False',u'false',u'Off',u'off',u'0']:
-                                    self.transforms[t_name]['active'] = False
+                        print("k: {}, v: {}".format(k,v))
+                        if k == u'active':
+                            if v in [u'True',u'true',u'On',u'on',u'1']:
+                                self.transforms[t_name]['active'] = True
+                            elif v in [u'False',u'false',u'Off',u'off',u'0']:
+                                self.transforms[t_name]['active'] = False
+                        elif k == u'value':
+                            if v == 0.0:
+                                self.transforms[t_name]['active'] = False
                             else:
-                                self.transforms[t_name][k] = v
+                                self.transforms[t_name]['active'] = True
+                            self.transforms[t_name]['value'] = v
+                        else:
+                            self.transforms[t_name][k] = v
+                    #always have to have brightness active to get base intensity
+                    self.transforms['brightness']['active'] = True
+                    print('updated transform {}: '.format(t_name))
+                    for k,v in self.transforms[t_name].items():
+                        print('{} : {}'.format(k,v))
                 else:
                     print('not in transforms')
             self.q.task_done()
@@ -273,9 +293,9 @@ class Lights(Thread):
             self.strands['intensity'] = np.random.randint(self.minbright,self.maxbright+1,
                                                     self.strands['intensity'].shape)
 
-    def solid(self,step):
+    def brightness(self,step):
         self.strands['intensity'] = np.full(self.strands['intensity'].shape,
-                                                  self.maxbright,
+                                            self.maxbright*self.transforms['brightness']['value'],
                                             dtype=np.int16)
 
     def rotate(self,step):

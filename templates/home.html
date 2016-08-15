@@ -11,13 +11,12 @@
 
 
     $(".slider").change(function(){
-        //$("#pbrightness").text($(this).val());
         var curslider_id = $(this).attr("id");
         var curslider_val = $(this).val();
         $.getJSON($SCRIPT_ROOT + '/_sliderchanged',
-            { "id" : curslider_id, "val" : curslider_val },
+            { "cmd" : "transform", "name" : curslider_id, "value" : curslider_val },
             function(data) {
-                $("p#" + curslider_id).text("New value: " + data.val);
+                $("p#" + curslider_id).text(data.val);
             });
     });
   });
@@ -31,15 +30,21 @@
       Brightness
       <br>
       Refresh Rate
-      <form>
-      <input id="brightness" type="range" class="slider" value="0.1" min="0.0" max="1.0" step="0.02">
-      </form>
-    <p id="brightness" >_init_ brightness </p>
-      <br>
       Speed for each transform
       <h2>Transforms</h2>
-      <a href=/transform?name=solid&active=True> Solid on</a> <br>
-      <a href=/transform?name=solid&active=False> Solid off</a> <br>
+      <table>
+      {% for t in ["brightness","randomize", "rotate", "xbounce", "ybounce"] %}
+          <tr>
+            <td> <p id={{ t }} > 0.0 </p> </td>
+            <td>
+                  <input id={{ t }} type="range" class="slider" value="0.0" min="0.0" max="1.0" step="0.01">
+            </td>
+            <td> {{ t }}</td>
+          </tr>
+      {% endfor %}
+      </table>
+      <a href=/transform?name=brightness&active=True> brightness on</a> <br>
+      <a href=/transform?name=brightness&active=False> brightness off</a> <br>
       <a href=/transform?name=randomize&active=True> Randomize on</a> <br>
       <a href=/transform?name=randomize&active=False> Randomize off</a> <br>
       <a href=/transform?name=rotate&active=True> Rotate on</a> <br>
