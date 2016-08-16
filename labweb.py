@@ -41,7 +41,7 @@ def redirect_home():
 
 @app.route("/")
 @mobile_template("m.html")
-def index(template):
+def index(template="home.html"):
     return( home_page(template))
 
 @app.route("/home")
