@@ -1,7 +1,10 @@
 from multiprocessing import Process, Queue
 from multiprocessing.managers import BaseManager
 from flask import Flask, render_template, redirect, request, jsonify
+from flask_mobility import Mobility
+from flask_mobility.decorators import mobile_template
 app = Flask(__name__)
+Mobility(app)
 
 app.config.from_object('config')
 
@@ -28,18 +31,27 @@ def get_status():
         }
     return status
 
-def home_page():
+def home_page(template):
     templateData = get_status()
     templateData['title'] = 'Lighting Control'
-    return( render_template('home.html',**templateData))
+    return( render_template(template,**templateData))
 
 def redirect_home():
     return redirect("/home")
 
 @app.route("/")
+@mobile_template("m.html")
+def index(template):
+    return( home_page(template))
+
 @app.route("/home")
 def labyhome():
-    return( home_page())
+    return( home_page("home.html"))
+
+@app.route("/m")
+def labymobile():
+    templateData = get_status()
+    return (render_template('m.html',**templateData))
 
 @app.route("/params", methods=['GET','POST'])
 def lightparams():
