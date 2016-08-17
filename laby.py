@@ -10,6 +10,7 @@
 #           for each strand of lights
 #8/15/2016: handle separate cycle times for each transform
 #           brightness is base transform - would be color if rgb
+#8/17/2016: added strands.csv config file so lights can be configured on the fly and saved
 #   todo: need to set up status queue
 #   todo: move light and transform config into separate config file
 #   todo: move back into flask to see if performance issue
@@ -321,9 +322,11 @@ class Lights(Thread):
                                                     self.strands['intensity'].shape)
 
     def brightness(self,step):
-        self.strands['intensity'] = np.full(self.strands['intensity'].shape,
-                                            self.maxbright*self.transforms['brightness']['value'],
-                                            dtype=np.int16)
+        self.strands['intensity'].fill(self.maxbright*self.transforms['brightness']['value'])
+
+##        self.strands['intensity'] = np.full(self.strands['intensity'].shape,
+##                                            self.maxbright*self.transforms['brightness']['value'],
+##                                            dtype=np.int16)
 
     def rotate(self,step):
         """step is [0..1]"""
@@ -360,6 +363,11 @@ class Lights(Thread):
 
     def run(self):
         self.run_lights =  True
+        #predetermine functions locally to try to speed up 
+##        transform_func = { self.transforms[tname]['name']: eval('self.'+self.transforms[tname]['name'])
+##                                       for tname in self.transforms.keys() }
+##        print('transform_func:')
+##        print(transform_func)
         print('Running LEDs...')
         start_time = time.time()
         start_step_time = start_time
@@ -392,6 +400,8 @@ class Lights(Thread):
 ##                        print('Active transform: ',transform['name'])
 ##                        transform['func'](curstep);
                         eval('self.'+transform['name'])(curstep);
+                        #todo
+                        #transform_func[transform['name']](curstep); 
                 self.update_strands()
 
             else:
@@ -427,7 +437,8 @@ if __name__ == '__main__':
     #lt.stop()
     #lt.q.put({'cmd':'stop'})
 
-    lt.q.put({'cmd':'max','value':0.001})
+##    lt.q.put({'cmd':'max','value':0.001})
+    lt.q.put({'cmd':'transform','name':'brightness','value':0.001})
     print("ctrl-c to exit")
     while not lt.kill:
         time.sleep(3)
