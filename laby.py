@@ -10,7 +10,10 @@
 #           for each strand of lights
 #8/15/2016: handle separate cycle times for each transform
 #           brightness is base transform - would be color if rgb
-#       todo: need to set up status queue
+#   todo: need to set up status queue
+#   todo: move light and transform config into separate config file
+#   todo: move back into flask to see if performance issue
+#   todo: separate cycle times for each transform
 
 
 from __future__ import division
@@ -23,6 +26,7 @@ import time
 from multiprocessing.managers import BaseManager
 import math
 import pprint
+
 
 try:
     import Adafruit_PCA9685
@@ -84,26 +88,26 @@ class Lights(Thread):
                                   'last_intensity':0, 
                                   })
         self.strands_orig = []
-        add_strand( self.pwm[1],  3,  6,  5, 1, 0, 0 )
-        add_strand( self.pwm[1],  2,  5,  6, 1, 1, 0 )
-        add_strand( self.pwm[1],  1,  4,  5, 1, 2, 0 )
-        add_strand( self.pwm[1],  0,  5,  4, 1, 3, 0 )
-        add_strand( self.pwm[0], 15,  7,  5, 2, 0, 0 )
-        add_strand( self.pwm[0], 14,  5,  7, 2, 1, 0 )
-        add_strand( self.pwm[0], 13,  3,  5, 2, 2, 0 )
-        add_strand( self.pwm[0], 12,  5,  3, 2, 3, 0 )
-        add_strand( self.pwm[0], 11,  8,  5, 3, 0, 0 )
-        add_strand( self.pwm[0], 10,  5,  8, 3, 1, 0 )
-        add_strand( self.pwm[0],  9,  2,  5, 3, 2, 0 )
-        add_strand( self.pwm[0],  8,  5,  2, 3, 3, 0 )
-        add_strand( self.pwm[0],  7,  9,  5, 4, 0, 0 )
-        add_strand( self.pwm[0],  6,  5,  9, 4, 1, 0 )
-        add_strand( self.pwm[0],  5,  1,  5, 4, 2, 0 )
-        add_strand( self.pwm[0],  4,  5,  1, 4, 3, 0 )
-        add_strand( self.pwm[0],  3, 10,  5, 5, 0, 0 )
-        add_strand( self.pwm[0],  2,  5, 10, 5, 1, 0 )
-        add_strand( self.pwm[0],  1,  0,  5, 5, 2, 0 )
-        add_strand( self.pwm[0],  0,  5,  0, 5, 3, 0 )
+        add_strand( 1,  3,  6,  5, 1, 0, 0 )
+        add_strand( 1,  2,  5,  6, 1, 1, 0 )
+        add_strand( 1,  1,  4,  5, 1, 2, 0 )
+        add_strand( 1,  0,  5,  4, 1, 3, 0 )
+        add_strand( 0, 15,  7,  5, 2, 0, 0 )
+        add_strand( 0, 14,  5,  7, 2, 1, 0 )
+        add_strand( 0, 13,  3,  5, 2, 2, 0 )
+        add_strand( 0, 12,  5,  3, 2, 3, 0 )
+        add_strand( 0, 11,  8,  5, 3, 0, 0 )
+        add_strand( 0, 10,  5,  8, 3, 1, 0 )
+        add_strand( 0,  9,  2,  5, 3, 2, 0 )
+        add_strand( 0,  8,  5,  2, 3, 3, 0 )
+        add_strand( 0,  7,  9,  5, 4, 0, 0 )
+        add_strand( 0,  6,  5,  9, 4, 1, 0 )
+        add_strand( 0,  5,  1,  5, 4, 2, 0 )
+        add_strand( 0,  4,  5,  1, 4, 3, 0 )
+        add_strand( 0,  3, 10,  5, 5, 0, 0 )
+        add_strand( 0,  2,  5, 10, 5, 1, 0 )
+        add_strand( 0,  1,  0,  5, 5, 2, 0 )
+        add_strand( 0,  0,  5,  0, 5, 3, 0 )
 
         self.update_strandinfo()
 
@@ -137,7 +141,15 @@ class Lights(Thread):
             print('transform:',k)
             print(v)
 
+        import pickle
+        def dumpinfo(obj,name):
+            pprint.pprint(obj)
+            #pickle.dump(obj,name,0)
 
+        dumpinfo(self.transforms, 'transforms.json')
+        dumpinfo(self.strands, 'strands.json')
+        dumpinfo(self.strandinfo, 'strandinfo.json')
+    
         
         class QueueManager(BaseManager):pass
         QueueManager.register('get_queue')
@@ -280,11 +292,13 @@ class Lights(Thread):
         for i,c in enumerate(changed):
             if c:
                 try:
-                    self.strands['pwm'][i].set_pwm(int(self.strands['channel'][i]),
+                    self.pwm[self.strands['pwm'][i]].set_pwm(int(self.strands['channel'][i]),
                                             0,
                                             int(self.strands['intensity'][i]))
                 except:
-                    print( 'channel {}: intensity {} {}'.format(
+                    print( 'Exception: No PWM: pwm {}:{}, channel {}: intensity {} {}'.format(
+                        self.strands['pwm'][i],
+                        self.pwm[self.strands['pwm'][i]],
                         self.strands['channel'][i],
                         self.strands['intensity'][i],
                         self.strands['intensity'][i].dtype))
