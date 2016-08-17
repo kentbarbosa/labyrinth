@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+   <head>
+      <title>{{ title }}</title>
+    <! -- script type="text/javascript" src="static/jquery.min.js"><! -- /script>
+<!-- Include meta tag to ensure proper rendering and touch zooming -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Include jQuery Mobile stylesheets -->
+<link rel="stylesheet" href="static/jquery.mobile-1.4.5.css">
+<link rel="stylesheet" href="static/laby.css">
+
+
+<!-- Include the jQuery library -->
+<script src="static/jquery-1.11.3.min.js"></script>
+
+<!-- Include the jQuery Mobile library -->
+<script src="static/jquery.mobile-1.4.5.min.js"></script>
+
+<script type="text/javascript">
+  $(function() {
+      var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+
+
+    $(".slider").change(function(){
+        var curslider_id = $(this).attr("id");
+        var curslider_val = $(this).val();
+        $.getJSON($SCRIPT_ROOT + '/_sliderchanged',
+            { "cmd" : "transform", "name" : curslider_id, "value" : curslider_val },
+            function(data) {
+                $("p#" + curslider_id).text(data.val);
+            });
+    });
+  });
+</script>
+
+   </head>
+
+   <body>
+      <a href="/home"><h1>Light control home</h1></a>
+      {% for t in ["brightness","randomize", "rotate", "xbounce", "ybounce"] %}
+            <label for={{ t }} > {{ t }} </label>
+                  <input id={{ t }} type="range" class="slider"
+                          value="0.0" min="0.0" max="1.0" step="0.01"
+                          data-highlight="true" >
+            <br>
+      {% endfor %}
+   </body>
+</html>
+

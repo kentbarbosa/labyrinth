@@ -8,7 +8,12 @@
 #   and light hardware updating (runner)
 #7/23/2016: created Strands class to handle location, pwm, channel info
 #           for each strand of lights
-#       todo: need to set up status queue
+#8/15/2016: handle separate cycle times for each transform
+#           brightness is base transform - would be color if rgb
+#   todo: need to set up status queue
+#   todo: move light and transform config into separate config file
+#   todo: move back into flask to see if performance issue
+#   todo: separate cycle times for each transform
 
 
 from __future__ import division
@@ -20,6 +25,8 @@ import Queue
 import time
 from multiprocessing.managers import BaseManager
 import math
+import pprint
+
 
 try:
     import Adafruit_PCA9685
@@ -81,55 +88,68 @@ class Lights(Thread):
                                   'last_intensity':0, 
                                   })
         self.strands_orig = []
-        add_strand( self.pwm[1],  3,  6,  5, 1, 0, 0 )
-        add_strand( self.pwm[1],  2,  5,  6, 1, 1, 0 )
-        add_strand( self.pwm[1],  1,  4,  5, 1, 2, 0 )
-        add_strand( self.pwm[1],  0,  5,  4, 1, 3, 0 )
-        add_strand( self.pwm[0], 15,  7,  5, 2, 0, 0 )
-        add_strand( self.pwm[0], 14,  5,  7, 2, 1, 0 )
-        add_strand( self.pwm[0], 13,  3,  5, 2, 2, 0 )
-        add_strand( self.pwm[0], 12,  5,  3, 2, 3, 0 )
-        add_strand( self.pwm[0], 11,  8,  5, 3, 0, 0 )
-        add_strand( self.pwm[0], 10,  5,  8, 3, 1, 0 )
-        add_strand( self.pwm[0],  9,  2,  5, 3, 2, 0 )
-        add_strand( self.pwm[0],  8,  5,  2, 3, 3, 0 )
-        add_strand( self.pwm[0],  7,  9,  5, 4, 0, 0 )
-        add_strand( self.pwm[0],  6,  5,  9, 4, 1, 0 )
-        add_strand( self.pwm[0],  5,  1,  5, 4, 2, 0 )
-        add_strand( self.pwm[0],  4,  5,  1, 4, 3, 0 )
-        add_strand( self.pwm[0],  3, 10,  5, 5, 0, 0 )
-        add_strand( self.pwm[0],  2,  5, 10, 5, 1, 0 )
-        add_strand( self.pwm[0],  1,  0,  5, 5, 2, 0 )
-        add_strand( self.pwm[0],  0,  5,  0, 5, 3, 0 )
+        add_strand( 1,  3,  6,  5, 1, 0, 0 )
+        add_strand( 1,  2,  5,  6, 1, 1, 0 )
+        add_strand( 1,  1,  4,  5, 1, 2, 0 )
+        add_strand( 1,  0,  5,  4, 1, 3, 0 )
+        add_strand( 0, 15,  7,  5, 2, 0, 0 )
+        add_strand( 0, 14,  5,  7, 2, 1, 0 )
+        add_strand( 0, 13,  3,  5, 2, 2, 0 )
+        add_strand( 0, 12,  5,  3, 2, 3, 0 )
+        add_strand( 0, 11,  8,  5, 3, 0, 0 )
+        add_strand( 0, 10,  5,  8, 3, 1, 0 )
+        add_strand( 0,  9,  2,  5, 3, 2, 0 )
+        add_strand( 0,  8,  5,  2, 3, 3, 0 )
+        add_strand( 0,  7,  9,  5, 4, 0, 0 )
+        add_strand( 0,  6,  5,  9, 4, 1, 0 )
+        add_strand( 0,  5,  1,  5, 4, 2, 0 )
+        add_strand( 0,  4,  5,  1, 4, 3, 0 )
+        add_strand( 0,  3, 10,  5, 5, 0, 0 )
+        add_strand( 0,  2,  5, 10, 5, 1, 0 )
+        add_strand( 0,  1,  0,  5, 5, 2, 0 )
+        add_strand( 0,  0,  5,  0, 5, 3, 0 )
 
         self.update_strandinfo()
 
         self.transforms = collections.OrderedDict()
-        self.transforms['solid']= {'name':'solid',
-                                'func':self.solid,
+        self.transforms['brightness']= {'name':'brightness',
+                                'func':self.brightness,
                                 'active':True,
+                                'value':1.0
                                 }
         self.transforms['randomize']= {'name':'randomize',
                                 'func':self.randomize,
                                 'active':False,
+                                'value':0.0
                                 }
         self.transforms['rotate']= {'name':'rotate',
                                     'func':self.rotate,
                                     'active':False,
+                                    'value':0.0
                                     }
         self.transforms['xbounce']= {'name':'xbounce',
                                     'func':self.xbounce,
                                     'active':False,
+                                    'value':0.0
                                     }
         self.transforms['ybounce']= {'name':'ybounce',
                                     'func':self.ybounce,
                                     'active':False,
+                                    'value':0.0
                                     }
         for k,v in self.transforms.items():
             print('transform:',k)
             print(v)
 
+        import pickle
+        def dumpinfo(obj,name):
+            pprint.pprint(obj)
+            #pickle.dump(obj,name,0)
 
+        dumpinfo(self.transforms, 'transforms.json')
+        dumpinfo(self.strands, 'strands.json')
+        dumpinfo(self.strandinfo, 'strandinfo.json')
+    
         
         class QueueManager(BaseManager):pass
         QueueManager.register('get_queue')
@@ -236,16 +256,28 @@ class Lights(Thread):
                 print('got transform cmd, q: ',curq)
                 if curq['name'] in self.transforms:
                     t_name = curq['name']
-                        
+##                    print('t_name: {}'.format(t_name))
+
                     for k,v in curq.items():
-                        if k in self.transforms[t_name]:
-                            if k == u'active':
-                                if v in [u'True',u'true',u'On',u'on',u'1']:
-                                    self.transforms[t_name]['active'] = True
-                                elif v in [u'False',u'false',u'Off',u'off',u'0']:
-                                    self.transforms[t_name]['active'] = False
+                        print("k: {}, v: {}".format(k,v))
+                        if k == u'active':
+                            if v in [u'True',u'true',u'On',u'on',u'1']:
+                                self.transforms[t_name]['active'] = True
+                            elif v in [u'False',u'false',u'Off',u'off',u'0']:
+                                self.transforms[t_name]['active'] = False
+                        elif k == u'value':
+                            if v == 0.0:
+                                self.transforms[t_name]['active'] = False
                             else:
-                                self.transforms[t_name][k] = v
+                                self.transforms[t_name]['active'] = True
+                            self.transforms[t_name]['value'] = v
+                        else:
+                            self.transforms[t_name][k] = v
+                    #always have to have brightness active to get base intensity
+                    self.transforms['brightness']['active'] = True
+                    print('updated transform {}: '.format(t_name))
+                    for k,v in self.transforms[t_name].items():
+                        print('{} : {}'.format(k,v))
                 else:
                     print('not in transforms')
             self.q.task_done()
@@ -260,11 +292,13 @@ class Lights(Thread):
         for i,c in enumerate(changed):
             if c:
                 try:
-                    self.strands['pwm'][i].set_pwm(int(self.strands['channel'][i]),
+                    self.pwm[self.strands['pwm'][i]].set_pwm(int(self.strands['channel'][i]),
                                             0,
                                             int(self.strands['intensity'][i]))
                 except:
-                    print( 'channel {}: intensity {} {}'.format(
+                    print( 'Exception: No PWM: pwm {}:{}, channel {}: intensity {} {}'.format(
+                        self.strands['pwm'][i],
+                        self.pwm[self.strands['pwm'][i]],
                         self.strands['channel'][i],
                         self.strands['intensity'][i],
                         self.strands['intensity'][i].dtype))
@@ -273,9 +307,9 @@ class Lights(Thread):
             self.strands['intensity'] = np.random.randint(self.minbright,self.maxbright+1,
                                                     self.strands['intensity'].shape)
 
-    def solid(self,step):
+    def brightness(self,step):
         self.strands['intensity'] = np.full(self.strands['intensity'].shape,
-                                                  self.maxbright,
+                                            self.maxbright*self.transforms['brightness']['value'],
                                             dtype=np.int16)
 
     def rotate(self,step):
