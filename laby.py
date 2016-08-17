@@ -26,6 +26,8 @@ import time
 from multiprocessing.managers import BaseManager
 import math
 import pprint
+import json
+import csv
 
 
 try:
@@ -46,8 +48,7 @@ strand_fields = ['pwm',
                 'y',
                 'rho',
                 'theta',
-                'intensity',
-                'last_intensity' ]
+                'intensity' ]
 
 class Lights(Thread):
     def __init__(self):
@@ -77,63 +78,53 @@ class Lights(Thread):
 
         
 
-        def add_strand(pwm,channel,x,y,rho,theta,intensity=0):
-            self.strands_orig.append( {'pwm':pwm,
-                                  'channel':channel,
-                                  'x':x,
-                                  'y':y,
-                                  'rho':rho,
-                                  'theta':theta,
-                                  'intensity':intensity,
-                                  'last_intensity':0, 
-                                  })
-        self.strands_orig = []
-        add_strand( 1,  3,  6,  5, 1, 0, 0 )
-        add_strand( 1,  2,  5,  6, 1, 1, 0 )
-        add_strand( 1,  1,  4,  5, 1, 2, 0 )
-        add_strand( 1,  0,  5,  4, 1, 3, 0 )
-        add_strand( 0, 15,  7,  5, 2, 0, 0 )
-        add_strand( 0, 14,  5,  7, 2, 1, 0 )
-        add_strand( 0, 13,  3,  5, 2, 2, 0 )
-        add_strand( 0, 12,  5,  3, 2, 3, 0 )
-        add_strand( 0, 11,  8,  5, 3, 0, 0 )
-        add_strand( 0, 10,  5,  8, 3, 1, 0 )
-        add_strand( 0,  9,  2,  5, 3, 2, 0 )
-        add_strand( 0,  8,  5,  2, 3, 3, 0 )
-        add_strand( 0,  7,  9,  5, 4, 0, 0 )
-        add_strand( 0,  6,  5,  9, 4, 1, 0 )
-        add_strand( 0,  5,  1,  5, 4, 2, 0 )
-        add_strand( 0,  4,  5,  1, 4, 3, 0 )
-        add_strand( 0,  3, 10,  5, 5, 0, 0 )
-        add_strand( 0,  2,  5, 10, 5, 1, 0 )
-        add_strand( 0,  1,  0,  5, 5, 2, 0 )
-        add_strand( 0,  0,  5,  0, 5, 3, 0 )
+        self.strands_config = []
+        try:
+            self.read_strands('strands.csv')
+        except:
+            self.add_strand( [ 1,  3,  6,  5, 1, 0, 0 ] )
+            self.add_strand( [ 1,  2,  5,  6, 1, 1, 0 ] )
+            self.add_strand( [ 1,  1,  4,  5, 1, 2, 0 ] )
+            self.add_strand( [ 1,  0,  5,  4, 1, 3, 0 ] )
+            self.add_strand( [ 0, 15,  7,  5, 2, 0, 0 ] )
+            self.add_strand( [ 0, 14,  5,  7, 2, 1, 0 ] )
+            self.add_strand( [ 0, 13,  3,  5, 2, 2, 0 ] )
+            self.add_strand( [ 0, 12,  5,  3, 2, 3, 0 ] )
+            self.add_strand( [ 0, 11,  8,  5, 3, 0, 0 ] )
+            self.add_strand( [ 0, 10,  5,  8, 3, 1, 0 ] )
+            self.add_strand( [ 0,  9,  2,  5, 3, 2, 0 ] )
+            self.add_strand( [ 0,  8,  5,  2, 3, 3, 0 ] )
+            self.add_strand( [ 0,  7,  9,  5, 4, 0, 0 ] )
+            self.add_strand( [ 0,  6,  5,  9, 4, 1, 0 ] )
+            self.add_strand( [ 0,  5,  1,  5, 4, 2, 0 ] )
+            self.add_strand( [ 0,  4,  5,  1, 4, 3, 0 ] )
+            self.add_strand( [ 0,  3, 10,  5, 5, 0, 0 ] )
+            self.add_strand( [ 0,  2,  5, 10, 5, 1, 0 ] )
+            self.add_strand( [ 0,  1,  0,  5, 5, 2, 0 ] )
+            self.add_strand( [ 0,  0,  5,  0, 5, 3, 0 ] )
+
+        self.write_strands('strands_backup.csv')
 
         self.update_strandinfo()
 
         self.transforms = collections.OrderedDict()
         self.transforms['brightness']= {'name':'brightness',
-                                'func':self.brightness,
                                 'active':True,
                                 'value':1.0
                                 }
         self.transforms['randomize']= {'name':'randomize',
-                                'func':self.randomize,
                                 'active':False,
                                 'value':0.0
                                 }
         self.transforms['rotate']= {'name':'rotate',
-                                    'func':self.rotate,
                                     'active':False,
                                     'value':0.0
                                     }
         self.transforms['xbounce']= {'name':'xbounce',
-                                    'func':self.xbounce,
                                     'active':False,
                                     'value':0.0
                                     }
         self.transforms['ybounce']= {'name':'ybounce',
-                                    'func':self.ybounce,
                                     'active':False,
                                     'value':0.0
                                     }
@@ -141,15 +132,7 @@ class Lights(Thread):
             print('transform:',k)
             print(v)
 
-        import pickle
-        def dumpinfo(obj,name):
-            pprint.pprint(obj)
-            #pickle.dump(obj,name,0)
 
-        dumpinfo(self.transforms, 'transforms.json')
-        dumpinfo(self.strands, 'strands.json')
-        dumpinfo(self.strandinfo, 'strandinfo.json')
-    
         
         class QueueManager(BaseManager):pass
         QueueManager.register('get_queue')
@@ -157,6 +140,36 @@ class Lights(Thread):
         self.qmgr.connect()
         self.q = self.qmgr.get_queue()
 
+    def add_strand(self,data):
+        self.strands_config.append(dict(zip(strand_fields,data)))
+##        self.strands_config.append( {'pwm':pwm,
+##                              'channel':channel,
+##                              'x':x,
+##                              'y':y,
+##                              'rho':rho,
+##                              'theta':theta,
+##                              'intensity':intensity,
+##                              })
+
+    def read_strands(self,filename):
+        self.strands_config = []
+        with open(filename, 'rb') as csvfile:
+            strands_reader = csv.reader(csvfile)
+            for row in strands_reader:
+##                print('row:')
+##                print(row)
+                if 6 <= len(row) <= 7 :
+                    self.add_strand([int(i) for i in row]) 
+##        print('read strands:')
+##        print(self.strands_config)
+
+    def write_strands(self,filename):
+        with open(filename,'wb') as csvfile:
+            strands_writer = csv.writer(csvfile)
+            for s in self.strands_config:
+                strands_writer.writerow([s[p] for p in strand_fields])
+        pass
+        
     def update_strandinfo(self):
         """create numpy arrays for the strands.
             updates min and max values for all strand fields.
@@ -170,11 +183,11 @@ class Lights(Thread):
         self.strands = {}
 
         for f in ['pwm','channel']:
-            self.strands[f] = [ s[f] for s in self.strands_orig]
+            self.strands[f] = [ s[f] for s in self.strands_config]
 
         for f in params:
-            if f in self.strands_orig[0]:
-                self.strands[f] = np.array([ s[f] for s in self.strands_orig],dtype=np.int16)
+            if f in self.strands_config[0]:
+                self.strands[f] = np.array([ s[f] for s in self.strands_config],dtype=np.int16)
 
         for f in ['intensity','last_intensity']:
             self.strands[f] = np.zeros_like(self.strands['x'],dtype=np.int16)
@@ -377,7 +390,8 @@ class Lights(Thread):
                 for transform in self.transforms.values():
                     if transform['active']:
 ##                        print('Active transform: ',transform['name'])
-                        transform['func'](curstep);
+##                        transform['func'](curstep);
+                        eval('self.'+transform['name'])(curstep);
                 self.update_strands()
 
             else:
