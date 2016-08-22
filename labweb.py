@@ -136,6 +136,15 @@ def sliderchanged():
     cmdq.put(cmd)
     return jsonify(name=slidername,val=sliderval)
               
+@app.route("/_isactivechanged")
+def isactivechanged():
+    tname = request.args.get('name',None,type=str)
+    isactive = request.args.get('active',None,type=str)
+    cmd = {'cmd': 'transform',
+           'name':tname,
+           'active':isactive }
+    cmdq.put(cmd)
+    return jsonify({}) #todo
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80, debug=True)
