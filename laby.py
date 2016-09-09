@@ -11,8 +11,9 @@
 #8/15/2016: handle separate cycle times for each transform
 #           brightness is base transform - would be color if rgb
 #8/17/2016: added strands.csv config file so lights can be configured on the fly and saved
-#   todo: need to set up status queue
-#   todo: move light and transform config into separate config file
+#9/8/2016: separate cycle times for each transform
+#   todo: set up status queue
+#   todo: move transform config into separate config file
 #   todo: move back into flask to see if performance issue
 #   todo: separate cycle times for each transform
 
@@ -290,7 +291,7 @@ class Lights(Thread):
                                 self.transforms[t_name]['value'] = v
                             else:
                                 if v:
-                                    v = 0.2 / (v * v *v) #todo check this  and maybe push out to web page
+                                    v = 0.2 / (v * v * np.sign(v)) #todo check this  and maybe push out to web page
                                 self.transforms[t_name]['cycle_time'] = v
                         else:
                             self.transforms[t_name][k] = v
@@ -385,24 +386,25 @@ class Lights(Thread):
             t['start_time'] = start_time
 
         while not self.kill:
-            curtime = time.time()
-            cur_cycle_time = curtime- start_time # secs into this cycle
-            if cur_cycle_time > self.cycle_time:
-                start_time = time.time()
-                start_step_time = start_time
-                continue
-
-            cur_step_time = curtime - start_step_time
-            if cur_step_time < self.step_time:
-                continue
-            start_step_time = curtime
-
-            #step is [0..1] and is time independent
-            curstep = cur_cycle_time/ self.cycle_time
             if self.checkq():
                 #something may have changed, recalc anything needed here
                 
                 continue
+            
+            curtime = time.time()
+##            cur_cycle_time = curtime- start_time # secs into this cycle
+##            if cur_cycle_time > self.cycle_time:
+##                start_time = time.time()
+##                start_step_time = start_time
+##                continue
+##
+##            cur_step_time = curtime - start_step_time
+##            if cur_step_time < self.step_time:
+##                continue
+##            start_step_time = curtime
+##
+##            #step is [0..1] and is time independent
+##            curstep = cur_cycle_time/ self.cycle_time
             
                 
             if self.run_lights:
@@ -431,7 +433,7 @@ class Lights(Thread):
                 self.update_strands()
 
             else:
-                #time.sleep(self.step_time / 3.0 )
+                time.sleep(self.step_time / 3.0 )
                 pass
 
     def stop(self):
