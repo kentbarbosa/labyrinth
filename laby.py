@@ -53,7 +53,7 @@ strand_fields = ['pwm',
                 'intensity' ]
 
 class Lights(Thread):
-    def __init__(self):
+    def __init__(self,cmdq=None):
         Thread.__init__(self)
         self.kill = False
         self.run_lights = False
@@ -136,12 +136,16 @@ class Lights(Thread):
             print(v)
 
 
-        
-        class QueueManager(BaseManager):pass
-        QueueManager.register('get_queue')
-        self.qmgr = QueueManager(address=('127.0.0.1',50001),authkey=b'labyrinth')
-        self.qmgr.connect()
-        self.q = self.qmgr.get_queue()
+        if cmdq is None:
+            class QueueManager(BaseManager):pass
+            QueueManager.register('get_queue')
+            self.qmgr = QueueManager(address=('127.0.0.1',50001),authkey=b'labyrinth')
+            self.qmgr.connect()
+            self.q = self.qmgr.get_queue()
+        else:
+            self.q = cmdq
+
+        print('q is',self.q)
 
     def add_strand(self,data):
         self.strands_config.append(dict(zip(strand_fields,data)))
@@ -218,7 +222,7 @@ class Lights(Thread):
             curq = self.q.get()
             if 'cmd' in curq:
                 self.cmd = curq['cmd']
-##            print ("received: ", curq)
+            print ("received: ", curq)
             
             if self.cmd == 'min':
                 if 'value' in curq:
@@ -302,7 +306,7 @@ class Lights(Thread):
                         print('{} : {}'.format(k,v))
                 else:
                     print('not in transforms')
-            self.q.task_done()
+            #self.q.task_done()
             self.update_status()
             return curq
         else: 

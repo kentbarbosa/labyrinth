@@ -3,6 +3,8 @@ from multiprocessing.managers import BaseManager
 from flask import Flask, render_template, redirect, request, jsonify
 from flask_mobility import Mobility
 from flask_mobility.decorators import mobile_template
+import atexit
+
 app = Flask(__name__)
 Mobility(app)
 
@@ -12,12 +14,21 @@ app.config.from_object('config')
 
 sliders = { 'brightness':20}
 
+cmdq = Queue()
 
-class QueueManager(BaseManager):pass
-QueueManager.register('get_queue')
-qmgr = QueueManager(address=('127.0.0.1',50001),authkey=b'labyrinth')
-qmgr.connect()
-cmdq = qmgr.get_queue()
+import laby
+global lt
+lt = laby.Lights(cmdq)
+lt.start()
+
+cmdq.put({'cmd':'transform','name':'brightness','value':0.001})
+
+def kill_lights():
+    if lt:
+        lt.kill()
+
+atexit.register(kill_lights)
+
 
 
 def get_status():
