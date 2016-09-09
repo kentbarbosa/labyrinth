@@ -10,8 +10,6 @@ app.config.from_object('config')
 
 #from .import views
 
-from forms import LightParamsForm
-
 sliders = { 'brightness':20}
 
 
