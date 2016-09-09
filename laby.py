@@ -204,10 +204,11 @@ class Lights(Thread):
             
 
     def update_status(self):
-        print('cycle_time: ',self.cycle_time)
-        print('step_time: ',self.step_time)
-        print('maxbright: ',self.maxbright)
-        print('minbright: ',self.minbright)
+    ##        print('cycle_time: ',self.cycle_time)
+    ##        print('step_time: ',self.step_time)
+    ##        print('maxbright: ',self.maxbright)
+    ##        print('minbright: ',self.minbright)
+        pass
         
         
     def checkq(self):
@@ -215,7 +216,7 @@ class Lights(Thread):
             curq = self.q.get()
             if 'cmd' in curq:
                 self.cmd = curq['cmd']
-            print ("received: ", curq)
+##            print ("received: ", curq)
             
             if self.cmd == 'min':
                 if 'value' in curq:
@@ -267,13 +268,13 @@ class Lights(Thread):
                 self.strands['intensity'] = np.zeros_like(self.strands['intensity'])
                 self.run_lights = False
             elif self.cmd == 'transform':
-                print('got transform cmd, q: ',curq)
+##                print('got transform cmd, q: ',curq)
                 if curq['name'] in self.transforms:
                     t_name = curq['name']
 ##                    print('t_name: {}'.format(t_name))
 
                     for k,v in curq.items():
-                        print("k: {}, v: {}".format(k,v))
+##                        print("k: {}, v: {}".format(k,v))
                         if k == u'active':
                             if v in [u'True',u'true',u'On',u'on',u'1']:
                                 self.transforms[t_name]['active'] = True
@@ -289,9 +290,9 @@ class Lights(Thread):
                             self.transforms[t_name][k] = v
                     #always have to have brightness active to get base intensity
                     self.transforms['brightness']['active'] = True
-                    print('updated transform {}: '.format(t_name))
-                    for k,v in self.transforms[t_name].items():
-                        print('{} : {}'.format(k,v))
+##                    print('updated transform {}: '.format(t_name))
+##                    for k,v in self.transforms[t_name].items():
+##                        print('{} : {}'.format(k,v))
                 else:
                     print('not in transforms')
             self.q.task_done()
@@ -318,8 +319,9 @@ class Lights(Thread):
                         self.strands['intensity'][i].dtype))
                            
     def randomize(self,step):
-            self.strands['intensity'] = np.random.randint(self.minbright,self.maxbright+1,
-                                                    self.strands['intensity'].shape)
+        self.strands['intensity'] = np.int16(self.strands['intensity'] * np.random.random(self.strands['intensity'].shape))
+##        self.strands['intensity'] = np.random.randint(self.minbright,self.maxbright+1,
+##                                                    self.strands['intensity'].shape)
 
     def brightness(self,step):
         self.strands['intensity'].fill(self.maxbright*self.transforms['brightness']['value'])
@@ -405,7 +407,8 @@ class Lights(Thread):
                 self.update_strands()
 
             else:
-                time.sleep(self.step_time / 3.0 )
+                #time.sleep(self.step_time / 3.0 )
+                pass
 
     def stop(self):
         self.run_lights = False
