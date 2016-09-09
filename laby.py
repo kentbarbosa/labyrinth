@@ -111,23 +111,24 @@ class Lights(Thread):
         self.transforms = collections.OrderedDict()
         self.transforms['brightness']= {'name':'brightness',
                                 'active':True,
-                                'value':1.0
+                                'value':1.0,
+                                'cycle_time':1.0
                                 }
         self.transforms['randomize']= {'name':'randomize',
                                 'active':False,
-                                'value':0.0
+                                'cycle_time':0.0
                                 }
         self.transforms['rotate']= {'name':'rotate',
                                     'active':False,
-                                    'value':0.0
+                                    'cycle_time':0.0
                                     }
         self.transforms['xbounce']= {'name':'xbounce',
                                     'active':False,
-                                    'value':0.0
+                                    'cycle_time':0.0
                                     }
         self.transforms['ybounce']= {'name':'ybounce',
                                     'active':False,
-                                    'value':0.0
+                                    'cycle_time':0.0
                                     }
         for k,v in self.transforms.items():
             print('transform:',k)
@@ -281,18 +282,23 @@ class Lights(Thread):
                             elif v in [u'False',u'false',u'Off',u'off',u'0']:
                                 self.transforms[t_name]['active'] = False
                         elif k == u'value':
-                            if v == 0.0:
-                                self.transforms[t_name]['active'] = False
+##                            if v == 0.0:
+##                                self.transforms[t_name]['active'] = False
+##                            else:
+##                                self.transforms[t_name]['active'] = True
+                            if t_name == u'brightness':
+                                self.transforms[t_name]['value'] = v
                             else:
-                                self.transforms[t_name]['active'] = True
-                            self.transforms[t_name]['value'] = v
+                                if v:
+                                    v = 0.2 / (v * v *v) #todo check this  and maybe push out to web page
+                                self.transforms[t_name]['cycle_time'] = v
                         else:
                             self.transforms[t_name][k] = v
                     #always have to have brightness active to get base intensity
                     self.transforms['brightness']['active'] = True
-##                    print('updated transform {}: '.format(t_name))
-##                    for k,v in self.transforms[t_name].items():
-##                        print('{} : {}'.format(k,v))
+                    print('__updated transform {} __'.format(t_name))
+                    for k,v in self.transforms[t_name].items():
+                        print('{} : {}'.format(k,v))
                 else:
                     print('not in transforms')
             self.q.task_done()
@@ -319,7 +325,9 @@ class Lights(Thread):
                         self.strands['intensity'][i].dtype))
                            
     def randomize(self,step):
-        self.strands['intensity'] = np.int16(self.strands['intensity'] * np.random.random(self.strands['intensity'].shape))
+        if step == 0 or not 'random' in self.strands:
+            self.strands['random'] = np.random.random(self.strands['intensity'].shape)
+        self.strands['intensity'] = np.int16(self.strands['intensity'] * self.strands['random'])
 ##        self.strands['intensity'] = np.random.randint(self.minbright,self.maxbright+1,
 ##                                                    self.strands['intensity'].shape)
 
@@ -373,6 +381,8 @@ class Lights(Thread):
         print('Running LEDs...')
         start_time = time.time()
         start_step_time = start_time
+        for t in self.transforms.values():
+            t['start_time'] = start_time
 
         while not self.kill:
             curtime = time.time()
@@ -401,7 +411,21 @@ class Lights(Thread):
                     if transform['active']:
 ##                        print('Active transform: ',transform['name'])
 ##                        transform['func'](curstep);
-                        eval('self.'+transform['name'])(curstep);
+                        t_cycle_time = transform['cycle_time']
+                        t_start_time = transform['start_time']
+                        t_cur_cycle_time = curtime - transform['start_time']
+                        if t_cur_cycle_time > abs(t_cycle_time):
+                            #reset the current cycle
+                            transform['start_time'] = curtime
+                            t_cur_cycle_time = 0.0
+                            t_curstep = 0.0
+                        else:
+                            t_curstep = 0.0
+                            if t_cycle_time > 0:
+                                t_curstep = t_cur_cycle_time / t_cycle_time
+                            elif transform['cycle_time'] < 0:
+                                t_curstep = (abs(t_cycle_time)-t_cur_cycle_time)/t_cycle_time
+                        eval('self.'+transform['name'])(t_curstep);
                         #todo
                         #transform_func[transform['name']](curstep); 
                 self.update_strands()
