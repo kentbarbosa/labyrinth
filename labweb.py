@@ -146,7 +146,8 @@ def sliderchanged():
     print('transform message:',cmd)
     cmdq.put(cmd)
     jsonify(name=slidername,val=sliderval,transforms=lt.transforms)
-    return jsonify({})#name=slidername,val=sliderval,extra=42)
+    return jsonify(name=slidername,val=sliderval,comments="my comments",transforms=lt.transforms)
+#name=slidername,val=sliderval,extra=42)
               
 @app.route("/_isactivechanged")
 def isactivechanged():
@@ -159,4 +160,4 @@ def isactivechanged():
     return jsonify({}) #todo
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=80, debug=True)
+    app.run(host='0.0.0.0', port=3333, debug=True)

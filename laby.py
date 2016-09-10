@@ -295,7 +295,7 @@ class Lights(Thread):
                                 self.transforms[t_name]['value'] = v
                             else:
                                 if v:
-                                    v = 0.2 / (v * v * np.sign(v)) #todo check this  and maybe push out to web page
+                                    v = 0.01 / (v * v * np.sign(v)) #todo check this  and maybe push out to web page
                                 self.transforms[t_name]['cycle_time'] = v
                         else:
                             self.transforms[t_name][k] = v
