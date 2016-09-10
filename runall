@@ -5,7 +5,11 @@
 #
 # alias python=python3
 
-python /home/pi/dev/labyrinth/cmdqmanager.py &
-/home/pi/dev/labyrinth/runflask &
-python /home/pi/dev/labyrinth/laby.py &
+#python /home/pi/dev/labyrinth/cmdqmanager.py &
+
+#only need runflask as of 9/9/2016
+#/home/pi/dev/labyrinth/runflask &
+
+
+#python /home/pi/dev/labyrinth/laby.py &
 

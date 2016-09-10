@@ -38,6 +38,8 @@ def get_status():
         'status':'need to implement',
 
         }
+    print('__labweb__status__')
+    print(lt.transforms)
     return status
 
 def home_page(template):
@@ -143,7 +145,8 @@ def sliderchanged():
            'value' : sliderval }
     print('transform message:',cmd)
     cmdq.put(cmd)
-    return jsonify(name=slidername,val=sliderval)
+    jsonify(name=slidername,val=sliderval,transforms=lt.transforms)
+    return jsonify({})#name=slidername,val=sliderval,extra=42)
               
 @app.route("/_isactivechanged")
 def isactivechanged():
