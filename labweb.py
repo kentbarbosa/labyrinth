@@ -62,7 +62,7 @@ def labyhome():
 @app.route("/m")
 def labymobile():
     templateData = get_status()
-    return (render_template('m.html',**templateData))
+    return (render_template('m.html'))#,**templateData))
 
 @app.route("/params", methods=['GET','POST'])
 def lightparams():
