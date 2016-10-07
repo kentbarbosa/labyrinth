@@ -50,6 +50,9 @@ strand_fields = ['pwm',
                 'y',
                 'rho',
                 'theta',
+                'spiral',
+                'inward',
+                'outward',
                 'intensity' ]
 
 class Lights(Thread):
@@ -131,6 +134,19 @@ class Lights(Thread):
                                     'active':False,
                                     'cycle_time':0.0
                                     }
+        self.transforms['spiral']= {'name':'spiral',
+                                    'active':False,
+                                    'cycle_time':0.0
+                                    }
+        self.transforms['inward']= {'name':'inward',
+                                    'active':False,
+                                    'cycle_time':0.0
+                                    }
+        self.transforms['outward']= {'name':'outward',
+                                    'active':False,
+                                    'cycle_time':0.0
+                                    }
+        
         for k,v in self.transforms.items():
             print('transform:',k)
             print(v)
@@ -165,10 +181,10 @@ class Lights(Thread):
             for row in strands_reader:
 ##                print('row:')
 ##                print(row)
-                if 6 <= len(row) <= 7 :
+                if  len(row) >= len(strand_fields) :
                     self.add_strand([int(i) for i in row]) 
-##        print('read strands:')
-##        print(self.strands_config)
+        print('read strands:')
+        print(self.strands_config)
 
     def write_strands(self,filename):
         with open(filename,'wb') as csvfile:
@@ -182,7 +198,7 @@ class Lights(Thread):
             updates min and max values for all strand fields.
             only needs to be called after building the model with add_strand in __init__
         """
-        params = ['x','y','rho','theta']
+        params = ['x','y','rho','theta','spiral','inward','outward']
         infos =  {'min':np.min,
                   'max':np.max,
                   'count':lambda x:len(set(x))}
@@ -368,6 +384,15 @@ class Lights(Thread):
 
     def ybounce(self,step,bounce=True):
         self.xybounce(step,'y',bounce)
+
+    def spiral(self,step):
+        self.xybounce(step,'spiral',bounce=False)
+        
+    def inward(self,step):
+        self.xybounce(step,'inward',bounce=False)
+        
+    def outward(self,step):
+        self.xybounce(step,'outward',bounce=False)
         
     def transform(self,axis,step,bounce=True):
         """ axis : string 'x','y','rho','theta'
