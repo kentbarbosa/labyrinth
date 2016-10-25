@@ -21,6 +21,11 @@
                 $("p#" + curslider_id).text(data.val);
             });
     });
+
+    $(".isactive").change(function(){
+        $.getJSON($SCRIPT_ROOT + '/_isactivechanged',
+            { "cmd" : "transform", "name" : $(this).val(), "active": $(this).is(":checked") })
+    });
   });
 </script>
 
@@ -35,11 +40,19 @@
       Speed for each transform
       <h2>Transforms</h2>
       <table>
-      {% for t in ["brightness","randomize", "rotate", "xbounce", "ybounce"] %}
           <tr>
+            <td> <p id="brightness" > 0.0 </p> </td>
+            <td>
+                  <input id="brightness" type="range" class="slider" value="0.0" min="0.0" max="1.0" step="0.01">
+            </td>
+            <td> brightness</td>
+          </tr>
+      {% for t in ["randomize", "rotate", "xbounce", "ybounce"] %}
+          <tr>
+            <td> <input id={{ t + '_active' }} type="checkbox" name="active_transforms" class="isactive" value={{ t }}> </td>
             <td> <p id={{ t }} > 0.0 </p> </td>
             <td>
-                  <input id={{ t }} type="range" class="slider" value="0.0" min="0.0" max="1.0" step="0.01">
+                  <input id={{ t }} type="range" class="slider" value="0.0" min="-1.0" max="1.0" step="0.01">
             </td>
             <td> {{ t }}</td>
           </tr>

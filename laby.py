@@ -10,10 +10,13 @@
 #           for each strand of lights
 #8/15/2016: handle separate cycle times for each transform
 #           brightness is base transform - would be color if rgb
-#   todo: need to set up status queue
-#   todo: move light and transform config into separate config file
-#   todo: move back into flask to see if performance issue
-#   todo: separate cycle times for each transform
+#8/17/2016: added strands.csv config file so lights can be configured on the fly and saved
+#9/8/2016: separate cycle times for each transform
+#   moved transform config into separate config file
+#   moved back into flask to see if performance issue
+#   done: separate cycle times for each transform
+#10/6/2016: added spiral, inward, outward
+#   todo: set up status queue
 
 
 from __future__ import division
@@ -48,10 +51,13 @@ strand_fields = ['pwm',
                 'y',
                 'rho',
                 'theta',
+                'spiral',
+                'inward',
+                'outward',
                 'intensity' ]
 
 class Lights(Thread):
-    def __init__(self):
+    def __init__(self,cmdq=None):
         Thread.__init__(self)
         self.kill = False
         self.run_lights = False
@@ -110,35 +116,53 @@ class Lights(Thread):
         self.transforms = collections.OrderedDict()
         self.transforms['brightness']= {'name':'brightness',
                                 'active':True,
-                                'value':1.0
+                                'value':1.0,
+                                'cycle_time':1.0
                                 }
         self.transforms['randomize']= {'name':'randomize',
                                 'active':False,
-                                'value':0.0
+                                'cycle_time':0.0
                                 }
         self.transforms['rotate']= {'name':'rotate',
                                     'active':False,
-                                    'value':0.0
+                                    'cycle_time':0.0
                                     }
         self.transforms['xbounce']= {'name':'xbounce',
                                     'active':False,
-                                    'value':0.0
+                                    'cycle_time':0.0
                                     }
         self.transforms['ybounce']= {'name':'ybounce',
                                     'active':False,
-                                    'value':0.0
+                                    'cycle_time':0.0
                                     }
+        self.transforms['spiral']= {'name':'spiral',
+                                    'active':False,
+                                    'cycle_time':0.0
+                                    }
+        self.transforms['inward']= {'name':'inward',
+                                    'active':False,
+                                    'cycle_time':0.0
+                                    }
+        self.transforms['outward']= {'name':'outward',
+                                    'active':False,
+                                    'cycle_time':0.0
+                                    }
+        
         for k,v in self.transforms.items():
             print('transform:',k)
             print(v)
 
 
-        
-        class QueueManager(BaseManager):pass
-        QueueManager.register('get_queue')
-        self.qmgr = QueueManager(address=('127.0.0.1',50001),authkey=b'labyrinth')
-        self.qmgr.connect()
-        self.q = self.qmgr.get_queue()
+        if cmdq is None:
+            class QueueManager(BaseManager):pass
+            QueueManager.register('get_queue')
+            self.qmgr = QueueManager(address=('127.0.0.1',50001),authkey=b'labyrinth')
+            self.qmgr.connect()
+            self.q = self.qmgr.get_queue()
+        else:
+            self.q = cmdq
+
+        print('q is',self.q)
 
     def add_strand(self,data):
         self.strands_config.append(dict(zip(strand_fields,data)))
@@ -158,10 +182,10 @@ class Lights(Thread):
             for row in strands_reader:
 ##                print('row:')
 ##                print(row)
-                if 6 <= len(row) <= 7 :
+                if  len(row) >= len(strand_fields) :
                     self.add_strand([int(i) for i in row]) 
-##        print('read strands:')
-##        print(self.strands_config)
+        print('read strands:')
+        print(self.strands_config)
 
     def write_strands(self,filename):
         with open(filename,'wb') as csvfile:
@@ -175,7 +199,7 @@ class Lights(Thread):
             updates min and max values for all strand fields.
             only needs to be called after building the model with add_strand in __init__
         """
-        params = ['x','y','rho','theta']
+        params = ['x','y','rho','theta','spiral','inward','outward']
         infos =  {'min':np.min,
                   'max':np.max,
                   'count':lambda x:len(set(x))}
@@ -203,10 +227,11 @@ class Lights(Thread):
             
 
     def update_status(self):
-        print('cycle_time: ',self.cycle_time)
-        print('step_time: ',self.step_time)
-        print('maxbright: ',self.maxbright)
-        print('minbright: ',self.minbright)
+    ##        print('cycle_time: ',self.cycle_time)
+    ##        print('step_time: ',self.step_time)
+    ##        print('maxbright: ',self.maxbright)
+    ##        print('minbright: ',self.minbright)
+        pass
         
         
     def checkq(self):
@@ -266,34 +291,39 @@ class Lights(Thread):
                 self.strands['intensity'] = np.zeros_like(self.strands['intensity'])
                 self.run_lights = False
             elif self.cmd == 'transform':
-                print('got transform cmd, q: ',curq)
+##                print('got transform cmd, q: ',curq)
                 if curq['name'] in self.transforms:
                     t_name = curq['name']
 ##                    print('t_name: {}'.format(t_name))
 
                     for k,v in curq.items():
-                        print("k: {}, v: {}".format(k,v))
+##                        print("k: {}, v: {}".format(k,v))
                         if k == u'active':
                             if v in [u'True',u'true',u'On',u'on',u'1']:
                                 self.transforms[t_name]['active'] = True
                             elif v in [u'False',u'false',u'Off',u'off',u'0']:
                                 self.transforms[t_name]['active'] = False
                         elif k == u'value':
-                            if v == 0.0:
-                                self.transforms[t_name]['active'] = False
+##                            if v == 0.0:
+##                                self.transforms[t_name]['active'] = False
+##                            else:
+##                                self.transforms[t_name]['active'] = True
+                            if t_name == u'brightness':
+                                self.transforms[t_name]['value'] = v
                             else:
-                                self.transforms[t_name]['active'] = True
-                            self.transforms[t_name]['value'] = v
+                                if v:
+                                    v = 0.01 / (v * v * np.sign(v)) #todo check this  and maybe push out to web page
+                                self.transforms[t_name]['cycle_time'] = v
                         else:
                             self.transforms[t_name][k] = v
                     #always have to have brightness active to get base intensity
                     self.transforms['brightness']['active'] = True
-                    print('updated transform {}: '.format(t_name))
+                    print('__updated transform {} __'.format(t_name))
                     for k,v in self.transforms[t_name].items():
                         print('{} : {}'.format(k,v))
                 else:
                     print('not in transforms')
-            self.q.task_done()
+            #self.q.task_done()
             self.update_status()
             return curq
         else: 
@@ -317,13 +347,18 @@ class Lights(Thread):
                         self.strands['intensity'][i].dtype))
                            
     def randomize(self,step):
-            self.strands['intensity'] = np.random.randint(self.minbright,self.maxbright+1,
-                                                    self.strands['intensity'].shape)
+        if step == 0 or not 'random' in self.strands:
+            self.strands['random'] = np.random.random(self.strands['intensity'].shape)
+        self.strands['intensity'] = np.int16(self.strands['intensity'] * self.strands['random'])
+##        self.strands['intensity'] = np.random.randint(self.minbright,self.maxbright+1,
+##                                                    self.strands['intensity'].shape)
 
     def brightness(self,step):
-        self.strands['intensity'] = np.full(self.strands['intensity'].shape,
-                                            self.maxbright*self.transforms['brightness']['value'],
-                                            dtype=np.int16)
+        self.strands['intensity'].fill(self.maxbright*self.transforms['brightness']['value'])
+
+##        self.strands['intensity'] = np.full(self.strands['intensity'].shape,
+##                                            self.maxbright*self.transforms['brightness']['value'],
+##                                            dtype=np.int16)
 
     def rotate(self,step):
         """step is [0..1]"""
@@ -350,6 +385,15 @@ class Lights(Thread):
 
     def ybounce(self,step,bounce=True):
         self.xybounce(step,'y',bounce)
+
+    def spiral(self,step):
+        self.xybounce(step,'spiral',bounce=False)
+        
+    def inward(self,step):
+        self.xybounce(step,'inward',bounce=False)
+        
+    def outward(self,step):
+        self.xybounce(step,'outward',bounce=False)
         
     def transform(self,axis,step,bounce=True):
         """ axis : string 'x','y','rho','theta'
@@ -360,29 +404,37 @@ class Lights(Thread):
 
     def run(self):
         self.run_lights =  True
+        #predetermine functions locally to try to speed up 
+##        transform_func = { self.transforms[tname]['name']: eval('self.'+self.transforms[tname]['name'])
+##                                       for tname in self.transforms.keys() }
+##        print('transform_func:')
+##        print(transform_func)
         print('Running LEDs...')
         start_time = time.time()
         start_step_time = start_time
+        for t in self.transforms.values():
+            t['start_time'] = start_time
 
         while not self.kill:
-            curtime = time.time()
-            cur_cycle_time = curtime- start_time # secs into this cycle
-            if cur_cycle_time > self.cycle_time:
-                start_time = time.time()
-                start_step_time = start_time
-                continue
-
-            cur_step_time = curtime - start_step_time
-            if cur_step_time < self.step_time:
-                continue
-            start_step_time = curtime
-
-            #step is [0..1] and is time independent
-            curstep = cur_cycle_time/ self.cycle_time
             if self.checkq():
                 #something may have changed, recalc anything needed here
                 
                 continue
+            
+            curtime = time.time()
+##            cur_cycle_time = curtime- start_time # secs into this cycle
+##            if cur_cycle_time > self.cycle_time:
+##                start_time = time.time()
+##                start_step_time = start_time
+##                continue
+##
+##            cur_step_time = curtime - start_step_time
+##            if cur_step_time < self.step_time:
+##                continue
+##            start_step_time = curtime
+##
+##            #step is [0..1] and is time independent
+##            curstep = cur_cycle_time/ self.cycle_time
             
                 
             if self.run_lights:
@@ -391,11 +443,28 @@ class Lights(Thread):
                     if transform['active']:
 ##                        print('Active transform: ',transform['name'])
 ##                        transform['func'](curstep);
-                        eval('self.'+transform['name'])(curstep);
+                        t_cycle_time = transform['cycle_time']
+                        t_start_time = transform['start_time']
+                        t_cur_cycle_time = curtime - transform['start_time']
+                        if t_cur_cycle_time > abs(t_cycle_time):
+                            #reset the current cycle
+                            transform['start_time'] = curtime
+                            t_cur_cycle_time = 0.0
+                            t_curstep = 0.0
+                        else:
+                            t_curstep = 0.0
+                            if t_cycle_time > 0:
+                                t_curstep = t_cur_cycle_time / t_cycle_time
+                            elif transform['cycle_time'] < 0:
+                                t_curstep = (abs(t_cycle_time)-t_cur_cycle_time)/t_cycle_time
+                        eval('self.'+transform['name'])(t_curstep);
+                        #todo
+                        #transform_func[transform['name']](curstep); 
                 self.update_strands()
 
             else:
                 time.sleep(self.step_time / 3.0 )
+                pass
 
     def stop(self):
         self.run_lights = False
@@ -427,7 +496,8 @@ if __name__ == '__main__':
     #lt.stop()
     #lt.q.put({'cmd':'stop'})
 
-    lt.q.put({'cmd':'max','value':0.001})
+##    lt.q.put({'cmd':'max','value':0.001})
+    lt.q.put({'cmd':'transform','name':'brightness','value':0.001})
     print("ctrl-c to exit")
     while not lt.kill:
         time.sleep(3)

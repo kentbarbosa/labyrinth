@@ -3,6 +3,8 @@ from multiprocessing.managers import BaseManager
 from flask import Flask, render_template, redirect, request, jsonify
 from flask_mobility import Mobility
 from flask_mobility.decorators import mobile_template
+import atexit
+
 app = Flask(__name__)
 Mobility(app)
 
@@ -10,16 +12,23 @@ app.config.from_object('config')
 
 #from .import views
 
-from forms import LightParamsForm
-
 sliders = { 'brightness':20}
 
+cmdq = Queue()
 
-class QueueManager(BaseManager):pass
-QueueManager.register('get_queue')
-qmgr = QueueManager(address=('127.0.0.1',50001),authkey=b'labyrinth')
-qmgr.connect()
-cmdq = qmgr.get_queue()
+import laby
+global lt
+lt = laby.Lights(cmdq)
+lt.start()
+
+cmdq.put({'cmd':'transform','name':'brightness','value':0.001})
+
+def kill_lights():
+    if lt:
+        lt.kill()
+
+atexit.register(kill_lights)
+
 
 
 def get_status():
@@ -29,6 +38,8 @@ def get_status():
         'status':'need to implement',
 
         }
+    print('__labweb__status__')
+    print(lt.transforms)
     return status
 
 def home_page(template):
@@ -51,7 +62,7 @@ def labyhome():
 @app.route("/m")
 def labymobile():
     templateData = get_status()
-    return (render_template('m.html',**templateData))
+    return (render_template('m.html'))#,**templateData))
 
 @app.route("/params", methods=['GET','POST'])
 def lightparams():
@@ -134,8 +145,19 @@ def sliderchanged():
            'value' : sliderval }
     print('transform message:',cmd)
     cmdq.put(cmd)
-    return jsonify(name=slidername,val=sliderval)
+    jsonify(name=slidername,val=sliderval,transforms=lt.transforms)
+    return jsonify(name=slidername,val=sliderval,comments="my comments",transforms=lt.transforms)
+#name=slidername,val=sliderval,extra=42)
               
+@app.route("/_isactivechanged")
+def isactivechanged():
+    tname = request.args.get('name',None,type=str)
+    isactive = request.args.get('active',None,type=str)
+    cmd = {'cmd': 'transform',
+           'name':tname,
+           'active':isactive }
+    cmdq.put(cmd)
+    return jsonify({}) #todo
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=80, debug=True)
+    app.run(host='0.0.0.0', port=3333, debug=True)

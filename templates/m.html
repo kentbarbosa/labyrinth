@@ -21,7 +21,7 @@
       var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
 
 
-    $(".slider").change(function(){
+    $(".intensityslider").change(function(){
         var curslider_id = $(this).attr("id");
         var curslider_val = $(this).val();
         $.getJSON($SCRIPT_ROOT + '/_sliderchanged',
@@ -30,20 +30,54 @@
                 $("p#" + curslider_id).text(data.val);
             });
     });
+
+    $(".speedslider").change(function(){
+        var curslider_id = $(this).attr("id");
+        var curslider_val = $(this).val();
+        $.getJSON($SCRIPT_ROOT + '/_sliderchanged',
+            { "cmd" : "transform", "name" : curslider_id, "value" : curslider_val },
+            function(data) {
+                $("p#" + curslider_id).text(data.val);
+                $("#statusmsg").text( data.name + " set to " + data.val );
+            });
+    });
+
+    $(".isactive").change(function(){
+        $.getJSON($SCRIPT_ROOT + '/_isactivechanged',
+            { "cmd" : "transform", "name" : $(this).val(), "active": $(this).is(":checked") })
+    });
+
   });
 </script>
 
    </head>
 
    <body>
-      <a href="/home"><h1>Light control home</h1></a>
-      {% for t in ["brightness","randomize", "rotate", "xbounce", "ybounce"] %}
-            <label for={{ t }} > {{ t }} </label>
-                  <input id={{ t }} type="range" class="slider"
-                          value="0.0" min="0.0" max="1.0" step="0.01"
-                          data-highlight="true" >
-            <br>
+
+      <a href="/m"><h3>Light control</h3></a>
+    <div class="ui-field-contain">
+        <label for="brightness" >brightness</label>
+        <input id="brightness" type="range" class="intensityslider"
+                      value="0.0" min="0.0" max="1.0" step="0.01"
+                      data-highlight="true" >
+    </div>
+
+      {% for t in ["randomize", "rotate", "xbounce", "ybounce", "spiral", "inward", "outward"] %}
+    <div class="ui-field-contain">
+
+            <label for={{ t + '_active' }} > {{ t }} </label>
+          <input id={{ t + '_active' }} type="checkbox" name="active_transforms" class="isactive" value={{ t }}></input>
+            <label for={{ t }} class="ui-hidden-accessible">{{ t }}</label>
+            <input id={{ t }} type="range" class="speedslider"
+                          value="0.0" min="-1.0" max="1.0" step="0.01"
+                          data-highlight="true" ></input>
+    </div>
+
       {% endfor %}
+    <div>
+        <p id="statusmsg"> </p>
+    </div>
+
    </body>
 </html>
 
