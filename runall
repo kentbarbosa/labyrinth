@@ -8,7 +8,7 @@
 #python /home/pi/dev/labyrinth/cmdqmanager.py &
 
 #only need runflask as of 9/9/2016
-#/home/pi/dev/labyrinth/runflask &
+/home/pi/dev/labyrinth/runflask &
 
 
 #python /home/pi/dev/labyrinth/laby.py &

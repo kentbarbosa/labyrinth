@@ -12,10 +12,11 @@
 #           brightness is base transform - would be color if rgb
 #8/17/2016: added strands.csv config file so lights can be configured on the fly and saved
 #9/8/2016: separate cycle times for each transform
+#   moved transform config into separate config file
+#   moved back into flask to see if performance issue
+#   done: separate cycle times for each transform
+#10/6/2016: added spiral, inward, outward
 #   todo: set up status queue
-#   todo: move transform config into separate config file
-#   todo: move back into flask to see if performance issue
-#   todo: separate cycle times for each transform
 
 
 from __future__ import division
